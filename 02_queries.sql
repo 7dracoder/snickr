@@ -9,13 +9,17 @@
 -- (1) Create a new user account
 --     Placeholders: email, username, nickname, hashed_password
 -- ----------------------------------------------------------
-INSERT INTO users (email, username, nickname, password)
-VALUES (
-    'alice@example.com',      -- :email
-    'alice42',                -- :username
-    'Ali',                    -- :nickname
-    'hashed_password_here'    -- :password  (always store hashed)
-);
+WITH new_user AS (
+INSERT
+INTO users (email, username, password_hash)
+VALUES (:email, :username, :hashed_password)
+    RETURNING user_id
+    )
+
+INSERT
+INTO profiles (user_id, nickname)
+SELECT user_id, :nickname
+FROM new_user;
 
 
 -- ----------------------------------------------------------
@@ -26,38 +30,35 @@ VALUES (
 --     (Any workspace member may create a channel per the spec.)
 --     A sub-select / CTE guards against unauthorized inserts.
 -- ----------------------------------------------------------
-INSERT INTO channels (workspace_id, name, channel_type, creator_id)
-SELECT
-    :workspace_id,
-    :channel_name,          -- e.g. 'announcements'
-    'public',
-    :creator_id
-WHERE EXISTS (
-    SELECT 1
-    FROM workspace_members
-    WHERE workspace_id = :workspace_id
-      AND user_id      = :creator_id
-);
+WITH auth_check AS (SELECT user_id
+                    FROM workspace_memberships
+                    WHERE workspace_id = :workspace_id
+                      AND user_id = :creator_id),
+     new_channel AS (
+INSERT
+INTO channels (workspace_id, name, type, creator_id)
+SELECT :workspace_id, :channel_name, 'public', :creator_id
+FROM auth_check RETURNING channel_id
+)
 
 -- After creating the channel, automatically add the creator as first member:
-INSERT INTO channel_memberships (channel_id, user_id)
-VALUES (currval('channels_channel_id_seq'), :creator_id);
+INSERT
+INTO channel_memberships (channel_id, user_id)
+SELECT channel_id, :creator_id
+FROM new_channel;
 
 
 -- ----------------------------------------------------------
 -- (3) For each workspace, list all current administrators
 -- ----------------------------------------------------------
-SELECT
-    w.workspace_id,
-    w.name          AS workspace_name,
-    u.user_id,
-    u.username,
-    u.nickname,
-    wa.granted_at
-FROM workspace_admins wa
-JOIN workspaces w ON w.workspace_id = wa.workspace_id
-JOIN users      u ON u.user_id      = wa.user_id
-ORDER BY w.workspace_id, u.username;
+SELECT w.name     AS workspace_name,
+       u.username AS admin_username,
+       u.email    AS admin_email
+FROM workspace_memberships wm
+         JOIN workspaces w ON wm.workspace_id = w.workspace_id
+         JOIN users u ON wm.user_id = u.user_id
+WHERE wm.role = 'administrator'
+ORDER BY w.name;
 
 
 -- ----------------------------------------------------------
@@ -66,24 +67,17 @@ ORDER BY w.workspace_id, u.username;
 --     who have NOT yet joined.
 --     Placeholder: :workspace_id
 -- ----------------------------------------------------------
-SELECT
-    c.channel_id,
-    c.name          AS channel_name,
-    COUNT(ci.invitee_id) AS pending_over_5_days
+SELECT c.name               AS channel_name,
+       COUNT(ci.invitee_id) AS pending_invites_count
 FROM channels c
-JOIN channel_invitations ci
-    ON ci.channel_id = c.channel_id
-   AND ci.status     = 'pending'
-   AND ci.invited_at < CURRENT_TIMESTAMP - INTERVAL '5 days'
--- "not yet joined" = no row in channel_memberships
-LEFT JOIN channel_memberships cm
-    ON cm.channel_id = c.channel_id
-   AND cm.user_id    = ci.invitee_id
-WHERE c.workspace_id  = :workspace_id
-  AND c.channel_type  = 'public'
-  AND cm.user_id IS NULL               -- confirms they have not joined
-GROUP BY c.channel_id, c.name
-ORDER BY c.name;
+         JOIN channel_invitations ci ON c.channel_id = ci.channel_id
+         LEFT JOIN channel_memberships cm ON ci.channel_id = cm.channel_id
+    AND ci.invitee_id = cm.user_id
+WHERE c.workspace_id = :workspace_id
+  AND c.type = 'public'
+  AND ci.created_at < NOW() - INTERVAL '5 days'
+  AND cm.user_id IS NULL
+GROUP BY c.channel_id, c.name;
 
 
 -- ----------------------------------------------------------
@@ -91,14 +85,11 @@ ORDER BY c.name;
 --     in chronological order.
 --     Placeholder: :channel_id
 -- ----------------------------------------------------------
-SELECT
-    m.message_id,
-    u.username,
-    u.nickname,
-    m.body,
-    m.posted_at
+SELECT m.posted_at,
+       u.username AS sender,
+       m.body
 FROM messages m
-JOIN users u ON u.user_id = m.sender_id
+         LEFT JOIN users u ON m.sender_id = u.user_id
 WHERE m.channel_id = :channel_id
 ORDER BY m.posted_at ASC;
 
@@ -108,17 +99,15 @@ ORDER BY m.posted_at ASC;
 --     in any channel.
 --     Placeholder: :user_id
 -- ----------------------------------------------------------
-SELECT
-    m.message_id,
-    c.name      AS channel_name,
-    w.name      AS workspace_name,
-    m.body,
-    m.posted_at
+SELECT w.name AS workspace_name,
+       c.name AS channel_name,
+       m.posted_at,
+       m.body
 FROM messages m
-JOIN channels   c ON c.channel_id   = m.channel_id
-JOIN workspaces w ON w.workspace_id = c.workspace_id
+         JOIN channels c ON m.channel_id = c.channel_id
+         JOIN workspaces w ON c.workspace_id = w.workspace_id
 WHERE m.sender_id = :user_id
-ORDER BY m.posted_at ASC;
+ORDER BY m.posted_at DESC;
 
 
 -- ----------------------------------------------------------
@@ -129,24 +118,19 @@ ORDER BY m.posted_at ASC;
 --                    AND a member of the specific channel.
 --     Placeholder: :user_id
 -- ----------------------------------------------------------
-SELECT
-    m.message_id,
-    c.name      AS channel_name,
-    w.name      AS workspace_name,
-    u.username  AS posted_by,
-    m.body,
-    m.posted_at
+SELECT m.message_id,
+       c.name     AS channel_name,
+       w.name     AS workspace_name,
+       u.username AS posted_by, -- p.nickname AS posted_by
+       m.body,
+       m.posted_at
 FROM messages m
-JOIN channels          c  ON c.channel_id   = m.channel_id
-JOIN workspaces        w  ON w.workspace_id = c.workspace_id
-JOIN users             u  ON u.user_id      = m.sender_id
--- user must be a workspace member
-JOIN workspace_members wm ON wm.workspace_id = w.workspace_id
-                          AND wm.user_id     = :user_id
--- user must be a channel member
-JOIN channel_memberships cm ON cm.channel_id = c.channel_id
-                            AND cm.user_id   = :user_id
-WHERE to_tsvector('english', m.body) @@ to_tsquery('english', 'perpendicular')
-   -- fallback LIKE for non-PostgreSQL engines:
-   -- OR m.body ILIKE '%perpendicular%'
+         JOIN channels c ON m.channel_id = c.channel_id
+         JOIN workspaces w ON c.workspace_id = w.workspace_id
+         LEFT JOIN users u ON m.sender_id = u.user_id   -- LEFT JOIN profiles p ON m.sender_id = p.user_id
+         JOIN workspace_memberships wm ON wm.workspace_id = w.workspace_id
+    AND wm.user_id = :user_id
+         JOIN channel_memberships cm ON cm.channel_id = c.channel_id
+    AND cm.user_id = :user_id
+WHERE m.body ILIKE '%perpendicular%'
 ORDER BY m.posted_at ASC;
