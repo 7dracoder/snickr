@@ -1,0 +1,27 @@
+# Compiled Files
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.log
+*.zip
+*.tar.gz
+*.rar
+
+# .idea file
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+*.settings/
+
+# System file
+.DS_Store
+Thumbs.db
+
+# Others
+application-dev.properties
+application-local.properties

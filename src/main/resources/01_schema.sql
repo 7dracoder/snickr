@@ -42,7 +42,7 @@ CREATE TABLE users
 CREATE TABLE profiles
 (
     user_id    UUID PRIMARY KEY REFERENCES users (user_id) ON DELETE CASCADE,
-    nickname      TEXT        NOT NULL,
+    nickname   TEXT        NOT NULL,
     bio        TEXT,
     avatar     TEXT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -62,7 +62,6 @@ CREATE TABLE workspaces
 
 -- -------------------------------------------------------
 -- WORKSPACE MEMBERSHIPS
--- role_type: 'administrator' | 'member'
 -- -------------------------------------------------------
 CREATE TABLE workspace_memberships
 (
@@ -89,14 +88,14 @@ CREATE TABLE workspace_invitations
 
 -- -------------------------------------------------------
 -- CHANNELS
--- channel_type: 'public' | 'private' | 'direct'
--- For direct channels exactly two members exist in channel_memberships.
+-- Note: PostgreSQL treats NULLs as distinct in UNIQUE constraints.
+-- This means multiple direct channels with name=NULL can exist in the same workspace safely.
 -- -------------------------------------------------------
 CREATE TABLE channels
 (
     channel_id   UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
     workspace_id UUID         NOT NULL REFERENCES workspaces (workspace_id) ON DELETE CASCADE,
-    name         TEXT, -- NULL for direct channel
+    name         TEXT,
     type         channel_type NOT NULL,
     creator_id   UUID         NOT NULL REFERENCES users (user_id),
     created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -115,17 +114,17 @@ CREATE TABLE channel_memberships
 );
 
 -- -------------------------------------------------------
--- CHANNEL INVITATIONS  (for private channels)
+-- CHANNEL INVITATIONS
 -- -------------------------------------------------------
 CREATE TABLE channel_invitations
 (
-    channel_id UUID        NOT NULL REFERENCES channels (channel_id) ON DELETE CASCADE,
-    inviter_id UUID        NOT NULL REFERENCES users (user_id),
-    invitee_id UUID        NOT NULL REFERENCES users (user_id),
-    status     status_type NOT NULL DEFAULT 'pending',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expiry_at  TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
-    PRIMARY KEY (channel_id, invitee_id)
+    invitation_id UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
+    channel_id    UUID        NOT NULL REFERENCES channels (channel_id) ON DELETE CASCADE,
+    inviter_id    UUID        NOT NULL REFERENCES users (user_id),
+    invitee_id    UUID        NOT NULL REFERENCES users (user_id),
+    status        status_type NOT NULL DEFAULT 'pending',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expiry_at     TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
 );
 
 -- -------------------------------------------------------
@@ -140,6 +139,9 @@ CREATE TABLE messages
     posted_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- -------------------------------------------------------
+-- INDEXES
+-- -------------------------------------------------------
 -- Full-text search index on message body (PostgreSQL)
 CREATE INDEX idx_messages_body ON messages USING gin(to_tsvector('english', body));
 -- Regular indexes for common lookup patterns
