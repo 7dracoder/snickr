@@ -8,10 +8,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Handle HTTP requests related to workspaces
@@ -65,6 +67,32 @@ public class WorkspaceController {
 
         } catch (IllegalArgumentException e) {
             return "redirect:/dashboard?error";
+        }
+    }
+
+    /**
+     * Enter the specific workspace page
+     */
+    @GetMapping("/workspaces/{id}")
+    public String workspaceDetail(@PathVariable("id") UUID workspaceId, Authentication authentication, Model model) {
+        String username = authentication.getName();
+        User currentUser = userService.getUserByUsername(username)
+                .orElseThrow(() -> new RuntimeException("System Error: Current logged-in user not found"));
+
+        try {
+            Workspace currentWorkspace = workspaceService.getWorkspaceIfMember(workspaceId, currentUser.getUserId());
+
+            List<Workspace> allWorkspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
+
+            model.addAttribute("workspace", currentWorkspace);
+            model.addAttribute("workspaces", allWorkspaces);
+            model.addAttribute("currentUser", currentUser);
+
+            return "workspace";
+
+        } catch (IllegalArgumentException e) {
+            System.out.println("Attempted unauthorized access detected: " + username + " attempts to access workspace " + workspaceId);
+            return "redirect:/dashboard";
         }
     }
 }

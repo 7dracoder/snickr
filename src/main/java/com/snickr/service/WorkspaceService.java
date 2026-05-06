@@ -41,4 +41,12 @@ public class WorkspaceService {
     public List<Workspace> getWorkspacesForUser(UUID userId) {
         return workspaceRepository.findWorkspacesByUserId(userId);
     }
+
+    /**
+     * Verify whether the current user is a member of this workspace
+     */
+    public Workspace getWorkspaceIfMember(UUID workspaceId, UUID userId) {
+        return workspaceRepository.findByIdAndUserId(workspaceId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Unauthorized Access: You do not have permission to access this workspace, or the workspace does not exist."));
+    }
 }

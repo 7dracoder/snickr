@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -67,5 +68,16 @@ public class WorkspaceRepository {
                 "JOIN workspace_memberships wm ON w.workspace_id = wm.workspace_id " +
                 "WHERE wm.user_id = ?";
         return jdbcTemplate.query(sql, workspaceRowMapper, userId);
+    }
+
+    /**
+     * Workspace authentication
+     */
+    public Optional<Workspace> findByIdAndUserId(UUID workspaceId, UUID userId) {
+        String sql = "SELECT w.* FROM workspaces w " +
+                "JOIN workspace_memberships wm ON w.workspace_id = wm.workspace_id " +
+                "WHERE w.workspace_id = ? AND wm.user_id = ?";
+        List<Workspace> workspaces = jdbcTemplate.query(sql, workspaceRowMapper, workspaceId, userId);
+        return workspaces.stream().findFirst();
     }
 }
