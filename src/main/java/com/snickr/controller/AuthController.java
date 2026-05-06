@@ -6,7 +6,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * A controller responsible for handling user registration,
@@ -53,13 +52,11 @@ public class AuthController {
             @RequestParam("email") String email,
             @RequestParam("username") String username,
             @RequestParam("password") String password,
-            Model model,
-            RedirectAttributes redirectAttributes) {
+            Model model) {
 
         try {
             userService.registerUser(email, username, password);
-            redirectAttributes.addAttribute("success", "true");
-            return "redirect:/login";
+            return "redirect:/login?success";
 
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", e.getMessage());
