@@ -82,7 +82,7 @@
     <div th:if="${#lists.isEmpty(workspaces)}" class="px-2 small mt-2" style="color: #cfc3cf;">
       No Workspace
     </div>
-    <a href="#" class="workspace-item d-flex align-items-center" th:each="workspace : ${workspaces}">
+    <a th:href="@{/workspaces/{id}(id=${workspace.workspaceId})}" class="workspace-item d-flex align-items-center" th:each="workspace : ${workspaces}">
       <div class="workspace-icon" th:text="${#strings.substring(workspace.name,0,1).toUpperCase()}">W</div>
       <span class="text-truncate" th:text="${workspace.name}">Workspace Name</span>
     </a>
@@ -145,7 +145,7 @@
             </div>
             <div class="card-footer bg-white border-top-0 pb-3 pt-0 text-muted small">
               <div class="mb-3">Created at: <span th:text="${#temporals.format(workspace.createdAt, 'yyyy-MM-dd HH:mm')}">Date</span></div>
-              <a href="#" class="btn btn-outline-primary w-100 fw-bold">Enter Workspace →</a>
+              <a th:href="@{/workspaces/{id}(id=${workspace.workspaceId})}" class="btn btn-outline-primary w-100 fw-bold">Enter Workspace →</a>
             </div>
           </div>
         </div>
