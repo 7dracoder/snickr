@@ -4,5 +4,6 @@
     <file url="file://$PROJECT_DIR$/src/main/java/com/snickr/repository/UserRepository.java" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/src/main/java/com/snickr/repository/WorkspaceRepository.java" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/src/main/resources/01_schema.sql" dialect="PostgreSQL" />
+    <file url="PROJECT" dialect="PostgreSQL" />
   </component>
 </project>
