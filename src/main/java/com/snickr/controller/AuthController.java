@@ -63,12 +63,4 @@ public class AuthController {
             return "register";
         }
     }
-
-    /**
-     * Temporary Dashboard Route
-     */
-    @GetMapping("/dashboard")
-    public String dashboard() {
-        return "dashboard";
-    }
 }
