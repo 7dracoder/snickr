@@ -91,11 +91,32 @@ public class WorkspaceRepository {
     }
 
     /**
+     * Check if an unhandled and unexpired invitation already exists.
+     */
+    public boolean hasPendingInvitation(UUID workspaceId, String email) {
+        String sql = "SELECT COUNT(*) FROM workspace_invitations " +
+                "WHERE workspace_id = ? AND invitee_email = ? AND status = 'pending'::status_type AND expiry_at > NOW()";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, workspaceId, email);
+        return count != null && count > 0;
+    }
+
+    /**
+     * Check whether the user associated with this email address is already a workspace member
+     */
+    public boolean isMemberByEmail(UUID workspaceId, String email) {
+        String sql = "SELECT COUNT(*) FROM workspace_memberships wm " +
+                "JOIN users u ON wm.user_id = u.user_id " +
+                "WHERE wm.workspace_id = ? AND u.email = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, workspaceId, email);
+        return count != null && count > 0;
+    }
+
+    /**
      * Add users to the workspace and update invitation status
      */
     @Transactional
     public void acceptInvitation(UUID invitationId, UUID workspaceId, UUID userId) {
-        // Add membership
+        // Add the invitee to membership
         String insertMemberSql = "INSERT INTO workspace_memberships (workspace_id, user_id, role) VALUES (?, ?, 'member'::role_type)";
         jdbcTemplate.update(insertMemberSql, workspaceId, userId);
 

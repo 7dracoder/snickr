@@ -7,10 +7,7 @@ import com.snickr.service.WorkspaceService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -42,10 +39,18 @@ public class WorkspaceController {
 
         List<Workspace> workspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
 
-        List<Map<String, Object>> invitations = workspaceService.getPendingInvitations(currentUser.getEmail());
+        List<Map<String, Object>> rawInvitations = workspaceService.getPendingInvitations(currentUser.getEmail());
+
+        List<Map<String, Object>> validInvitations = rawInvitations.stream()
+                .filter(invite -> {
+                    UUID inviteWorkspaceId = (UUID) invite.get("workspace_id");
+                    // The invitation is retained only if none of the IDs in the user's current workspace list match the ID of this invitation
+                    return workspaces.stream().noneMatch(w -> w.getWorkspaceId().equals(inviteWorkspaceId));
+                })
+                .toList();
 
         model.addAttribute("workspaces", workspaces);
-        model.addAttribute("invitations", invitations);
+        model.addAttribute("invitations", validInvitations);
         model.addAttribute("currentUser", currentUser);
 
         return "dashboard";
@@ -74,9 +79,6 @@ public class WorkspaceController {
         }
     }
 
-    /**
-     * Enter the specific workspace page
-     */
     @GetMapping("/workspaces/{id}")
     public String workspaceDetail(@PathVariable("id") UUID workspaceId, Authentication authentication, Model model) {
         String username = authentication.getName();
@@ -110,13 +112,14 @@ public class WorkspaceController {
         String username = authentication.getName();
         User currentUser = userService.getUserByUsername(username).orElseThrow();
 
-        workspaceService.inviteUser(workspaceId, currentUser.getUserId(), email);
-        return "redirect:/workspaces/" + workspaceId + "?invited";
+        try {
+            workspaceService.inviteUser(workspaceId, currentUser.getUserId(), email);
+            return "redirect:/workspaces/" + workspaceId + "?invited";
+        } catch (IllegalArgumentException e) {
+            return "redirect:/workspaces/" + workspaceId + "?inviteError=" + e.getMessage();
+        }
     }
 
-    /**
-     * Accept the invitation
-     */
     @PostMapping("/invitations/accept")
     public String acceptInvite(@RequestParam("invitationId") UUID invitationId,
                                @RequestParam("workspaceId") UUID workspaceId,
@@ -124,7 +127,12 @@ public class WorkspaceController {
         String username = authentication.getName();
         User currentUser = userService.getUserByUsername(username).orElseThrow();
 
-        workspaceService.acceptInvitation(invitationId, workspaceId, currentUser.getUserId());
-        return "redirect:/dashboard?joined";
+        try {
+            workspaceService.acceptInvitation(invitationId, workspaceId, currentUser.getUserId());
+            return "redirect:/dashboard?joined";
+        } catch (Exception e) {
+            System.out.println("Detected a duplicate attempt to accept an invitation: " + e.getMessage());
+            return "redirect:/dashboard";
+        }
     }
 }

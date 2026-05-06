@@ -58,7 +58,18 @@ public class WorkspaceService {
         if (email == null || email.trim().isEmpty()) {
             throw new IllegalArgumentException("The invitee's email address cannot be empty");
         }
-        workspaceRepository.createInvitation(workspaceId, inviterId, email.trim().toLowerCase());
+
+        String targetEmail = email.trim().toLowerCase();
+
+        if (workspaceRepository.isMemberByEmail(workspaceId, targetEmail)) {
+            throw new IllegalArgumentException("member");
+        }
+
+        if (workspaceRepository.hasPendingInvitation(workspaceId, targetEmail)) {
+            throw new IllegalArgumentException("duplicate");
+        }
+
+        workspaceRepository.createInvitation(workspaceId, inviterId, targetEmail);
     }
 
     /**

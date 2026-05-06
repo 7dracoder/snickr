@@ -122,6 +122,8 @@
         <button class="btn btn-primary" type="submit">Send</button>
       </div>
       <div th:if="${param.invited}" class="text-success small mt-1">The invitation has been sent！</div>
+      <div th:if="${param.inviteError != null and param.inviteError[0] == 'duplicate'}" class="text-danger small mt-1 fw-bold">This user has already been invited; awaiting a response.</div>
+      <div th:if="${param.inviteError != null and param.inviteError[0] == 'member'}" class="text-warning small mt-1 fw-bold">This user is already a member.</div>
     </form>
   </div>
 </div>
