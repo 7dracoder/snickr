@@ -5,6 +5,7 @@ import com.snickr.repository.WorkspaceRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -48,5 +49,30 @@ public class WorkspaceService {
     public Workspace getWorkspaceIfMember(UUID workspaceId, UUID userId) {
         return workspaceRepository.findByIdAndUserId(workspaceId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Unauthorized Access: You do not have permission to access this workspace, or the workspace does not exist."));
+    }
+
+    /**
+     * Send workspace invitation
+     */
+    public void inviteUser(UUID workspaceId, UUID inviterId, String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("The invitee's email address cannot be empty");
+        }
+        workspaceRepository.createInvitation(workspaceId, inviterId, email.trim().toLowerCase());
+    }
+
+    /**
+     * Retrieve all pending invitations for a specified email address
+     */
+    public List<Map<String, Object>> getPendingInvitations(String email) {
+        if (email == null) return List.of();
+        return workspaceRepository.findPendingInvitationsByEmail(email.trim().toLowerCase());
+    }
+
+    /**
+     * Accept the invitation
+     */
+    public void acceptInvitation(UUID invitationId, UUID workspaceId, UUID userId) {
+        workspaceRepository.acceptInvitation(invitationId, workspaceId, userId);
     }
 }

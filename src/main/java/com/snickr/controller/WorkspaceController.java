@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -41,7 +42,10 @@ public class WorkspaceController {
 
         List<Workspace> workspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
 
+        List<Map<String, Object>> invitations = workspaceService.getPendingInvitations(currentUser.getEmail());
+
         model.addAttribute("workspaces", workspaces);
+        model.addAttribute("invitations", invitations);
         model.addAttribute("currentUser", currentUser);
 
         return "dashboard";
@@ -94,5 +98,33 @@ public class WorkspaceController {
             System.out.println("Attempted unauthorized access detected: " + username + " attempts to access workspace " + workspaceId);
             return "redirect:/dashboard";
         }
+    }
+
+    /**
+     * Invite other users to workspace by email
+     */
+    @PostMapping("/workspaces/{id}/invite")
+    public String inviteMember(@PathVariable("id") UUID workspaceId,
+                               @RequestParam("email") String email,
+                               Authentication authentication) {
+        String username = authentication.getName();
+        User currentUser = userService.getUserByUsername(username).orElseThrow();
+
+        workspaceService.inviteUser(workspaceId, currentUser.getUserId(), email);
+        return "redirect:/workspaces/" + workspaceId + "?invited";
+    }
+
+    /**
+     * Accept the invitation
+     */
+    @PostMapping("/invitations/accept")
+    public String acceptInvite(@RequestParam("invitationId") UUID invitationId,
+                               @RequestParam("workspaceId") UUID workspaceId,
+                               Authentication authentication) {
+        String username = authentication.getName();
+        User currentUser = userService.getUserByUsername(username).orElseThrow();
+
+        workspaceService.acceptInvitation(invitationId, workspaceId, currentUser.getUserId());
+        return "redirect:/dashboard?joined";
     }
 }
