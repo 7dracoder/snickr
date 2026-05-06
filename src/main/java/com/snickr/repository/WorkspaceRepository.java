@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -79,5 +80,39 @@ public class WorkspaceRepository {
                 "WHERE w.workspace_id = ? AND wm.user_id = ?";
         List<Workspace> workspaces = jdbcTemplate.query(sql, workspaceRowMapper, workspaceId, userId);
         return workspaces.stream().findFirst();
+    }
+
+    /**
+     * Send workspace invitation
+     */
+    public void createInvitation(UUID workspaceId, UUID inviterId, String inviteeEmail) {
+        String sql = "INSERT INTO workspace_invitations (workspace_id, inviter_id, invitee_email) VALUES (?, ?, ?)";
+        jdbcTemplate.update(sql, workspaceId, inviterId, inviteeEmail);
+    }
+
+    /**
+     * Add users to the workspace and update invitation status
+     */
+    @Transactional
+    public void acceptInvitation(UUID invitationId, UUID workspaceId, UUID userId) {
+        // Add membership
+        String insertMemberSql = "INSERT INTO workspace_memberships (workspace_id, user_id, role) VALUES (?, ?, 'member'::role_type)";
+        jdbcTemplate.update(insertMemberSql, workspaceId, userId);
+
+        // invitation status -> "accepted"
+        String updateInviteSql = "UPDATE workspace_invitations SET status = 'accepted'::status_type WHERE invitation_id = ?";
+        jdbcTemplate.update(updateInviteSql, invitationId);
+    }
+
+    /**
+     * Query all pending invitations sent to a specific email address
+     */
+    public List<Map<String, Object>> findPendingInvitationsByEmail(String email) {
+        String sql = "SELECT wi.invitation_id, wi.workspace_id, w.name as workspace_name, u.username as inviter_name " +
+                "FROM workspace_invitations wi " +
+                "JOIN workspaces w ON wi.workspace_id = w.workspace_id " +
+                "JOIN users u ON wi.inviter_id = u.user_id " +
+                "WHERE wi.invitee_email = ? AND wi.status = 'pending'::status_type AND wi.expiry_at > NOW()";
+        return jdbcTemplate.queryForList(sql, email);
     }
 }
