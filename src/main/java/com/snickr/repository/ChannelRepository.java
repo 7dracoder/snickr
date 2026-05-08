@@ -4,6 +4,7 @@ import com.snickr.model.Channel;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -35,11 +36,12 @@ public class ChannelRepository {
     /**
      * Create a new channel within the specified workspace
      */
+    @Transactional
     public Channel createChannel(Channel channel) {
         String sql = "INSERT INTO channels (workspace_id, name, type, creator_id) " +
                 "VALUES (?, ?, ?::channel_type, ?) RETURNING *";
 
-        return jdbcTemplate.queryForObject(
+        Channel newChannel = jdbcTemplate.queryForObject(
                 sql,
                 channelRowMapper,
                 channel.getWorkspaceId(),
@@ -47,6 +49,13 @@ public class ChannelRepository {
                 channel.getType(),
                 channel.getCreatorId()
         );
+
+        if (newChannel != null) {
+            String insertMembershipSql = "INSERT INTO channel_memberships (channel_id, user_id) VALUES (?, ?)";
+            jdbcTemplate.update(insertMembershipSql, newChannel.getChannelId(), newChannel.getCreatorId());
+        }
+
+        return newChannel;
     }
 
     /**

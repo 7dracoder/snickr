@@ -1,7 +1,9 @@
 package com.snickr.controller;
 
+import com.snickr.model.Channel;
 import com.snickr.model.User;
 import com.snickr.model.Workspace;
+import com.snickr.service.ChannelService;
 import com.snickr.service.UserService;
 import com.snickr.service.WorkspaceService;
 import org.springframework.security.core.Authentication;
@@ -21,21 +23,18 @@ public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
     private final UserService userService;
+    private final ChannelService channelService;
 
-    public WorkspaceController(WorkspaceService workspaceService, UserService userService) {
+    public WorkspaceController(WorkspaceService workspaceService, UserService userService, ChannelService channelService) {
         this.workspaceService = workspaceService;
         this.userService = userService;
+        this.channelService = channelService;
     }
 
-    /**
-     * Render the Dashboard page and inject workspace data
-     */
     @GetMapping("/dashboard")
     public String dashboard(Authentication authentication, Model model) {
         String username = authentication.getName();
-
-        User currentUser = userService.getUserByUsername(username)
-                .orElseThrow(() -> new RuntimeException("System Error: Current logged-in user not found"));
+        User currentUser = userService.getUserByUsername(username).orElseThrow();
 
         List<Workspace> workspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
 
@@ -90,17 +89,42 @@ public class WorkspaceController {
 
             List<Workspace> allWorkspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
 
+            List<Channel> channels = channelService.getChannelsForWorkspace(workspaceId);
+
             model.addAttribute("workspace", currentWorkspace);
             model.addAttribute("workspaces", allWorkspaces);
+            model.addAttribute("channels", channels);
             model.addAttribute("currentUser", currentUser);
 
             return "workspace";
 
         } catch (IllegalArgumentException e) {
-            System.out.println("Attempted unauthorized access detected: " + username + " attempts to access workspace " + workspaceId);
             return "redirect:/dashboard";
         }
     }
+
+    /**
+     * POST Request for Creating a Channel
+     */
+    @PostMapping("/workspaces/{id}/channels/create")
+    public String createChannel(@PathVariable("id") UUID workspaceId,
+                                @RequestParam("name") String name,
+                                @RequestParam("type") String type,
+                                Authentication authentication) {
+        String username = authentication.getName();
+        User currentUser = userService.getUserByUsername(username).orElseThrow();
+
+        try {
+            workspaceService.getWorkspaceIfMember(workspaceId, currentUser.getUserId());
+
+            channelService.createChannel(workspaceId, name, type, currentUser.getUserId());
+
+            return "redirect:/workspaces/" + workspaceId + "?channelCreated";
+        } catch (IllegalArgumentException e) {
+            return "redirect:/workspaces/" + workspaceId + "?channelError=" + e.getMessage();
+        }
+    }
+
 
     /**
      * Invite other users to workspace by email
@@ -131,7 +155,6 @@ public class WorkspaceController {
             workspaceService.acceptInvitation(invitationId, workspaceId, currentUser.getUserId());
             return "redirect:/dashboard?joined";
         } catch (Exception e) {
-            System.out.println("Detected a duplicate attempt to accept an invitation: " + e.getMessage());
             return "redirect:/dashboard";
         }
     }
