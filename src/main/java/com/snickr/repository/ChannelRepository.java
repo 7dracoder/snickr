@@ -11,9 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Responsible for handling database interactions for the 'channels' table.
- */
 @Repository
 public class ChannelRepository {
 
@@ -62,14 +59,15 @@ public class ChannelRepository {
     /**
      * Get all channels within a specified workspace_id
      */
-    public List<Channel> findChannelsByWorkspaceId(UUID workspaceId) {
-        String sql = "SELECT * FROM channels WHERE workspace_id = ? ORDER BY created_at ASC";
-        return jdbcTemplate.query(sql, channelRowMapper, workspaceId);
+    public List<Channel> findChannelsForUserInWorkspace(UUID workspaceId, UUID userId) {
+        String sql = "SELECT DISTINCT c.* FROM channels c " +
+                "LEFT JOIN channel_memberships cm ON c.channel_id = cm.channel_id " +
+                "WHERE c.workspace_id = ? " +
+                "AND (c.type = 'public'::channel_type OR (c.type = 'private'::channel_type AND cm.user_id = ?)) " +
+                "ORDER BY c.created_at ASC";
+        return jdbcTemplate.query(sql, channelRowMapper, workspaceId, userId);
     }
 
-    /**
-     * Find a single channel by ID
-     */
     public Optional<Channel> findById(UUID channelId) {
         String sql = "SELECT * FROM channels WHERE channel_id = ?";
         List<Channel> channels = jdbcTemplate.query(sql, channelRowMapper, channelId);

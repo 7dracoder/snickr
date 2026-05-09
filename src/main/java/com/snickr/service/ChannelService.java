@@ -39,8 +39,8 @@ public class ChannelService {
     /**
      * Retrieve all channels within a specific workspace
      */
-    public List<Channel> getChannelsForWorkspace(UUID workspaceId) {
-        return channelRepository.findChannelsByWorkspaceId(workspaceId);
+    public List<Channel> getChannelsForWorkspace(UUID workspaceId, UUID userId) {
+        return channelRepository.findChannelsForUserInWorkspace(workspaceId, userId);
     }
 
     /**
@@ -48,6 +48,6 @@ public class ChannelService {
      */
     public Channel getChannelById(UUID channelId) {
         return channelRepository.findById(channelId)
-                .orElseThrow(() -> new IllegalArgumentException("找不到该频道"));
+                .orElseThrow(() -> new IllegalArgumentException("Cannot find channel with id: " + channelId));
     }
 }

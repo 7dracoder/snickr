@@ -89,7 +89,7 @@ public class WorkspaceController {
 
             List<Workspace> allWorkspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
 
-            List<Channel> channels = channelService.getChannelsForWorkspace(workspaceId);
+            List<Channel> channels = channelService.getChannelsForWorkspace(workspaceId, currentUser.getUserId());
 
             model.addAttribute("workspace", currentWorkspace);
             model.addAttribute("workspaces", allWorkspaces);

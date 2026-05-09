@@ -43,9 +43,16 @@ public class ChannelController {
         try {
             Workspace currentWorkspace = workspaceService.getWorkspaceIfMember(workspaceId, currentUser.getUserId());
             List<Workspace> allWorkspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
-            List<Channel> channels = channelService.getChannelsForWorkspace(workspaceId);
+            List<Channel> channels = channelService.getChannelsForWorkspace(workspaceId, currentUser.getUserId());
 
             Channel activeChannel = channelService.getChannelById(channelId);
+
+            if ("private".equals(activeChannel.getType())) {
+                boolean hasAccess = channels.stream().anyMatch(c -> c.getChannelId().equals(activeChannel.getChannelId()));
+                if (!hasAccess) {
+                    throw new IllegalArgumentException("Access denied.");
+                }
+            }
 
             model.addAttribute("workspace", currentWorkspace);
             model.addAttribute("workspaces", allWorkspaces);
@@ -55,7 +62,7 @@ public class ChannelController {
 
             return "workspace";
         } catch (IllegalArgumentException e) {
-            return "redirect:/dashboard";
+            return "redirect:/workspaces/" + workspaceId;
         }
     }
 
