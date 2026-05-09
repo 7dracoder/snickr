@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -59,10 +60,19 @@ public class ChannelRepository {
     }
 
     /**
-     * Query all channels within a specified workspace_id
+     * Get all channels within a specified workspace_id
      */
     public List<Channel> findChannelsByWorkspaceId(UUID workspaceId) {
         String sql = "SELECT * FROM channels WHERE workspace_id = ? ORDER BY created_at ASC";
         return jdbcTemplate.query(sql, channelRowMapper, workspaceId);
+    }
+
+    /**
+     * Find a single channel by ID
+     */
+    public Optional<Channel> findById(UUID channelId) {
+        String sql = "SELECT * FROM channels WHERE channel_id = ?";
+        List<Channel> channels = jdbcTemplate.query(sql, channelRowMapper, channelId);
+        return channels.stream().findFirst();
     }
 }

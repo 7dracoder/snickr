@@ -94,34 +94,13 @@ public class WorkspaceController {
             model.addAttribute("workspace", currentWorkspace);
             model.addAttribute("workspaces", allWorkspaces);
             model.addAttribute("channels", channels);
+            model.addAttribute("activeChannel", null);
             model.addAttribute("currentUser", currentUser);
 
             return "workspace";
 
         } catch (IllegalArgumentException e) {
             return "redirect:/dashboard";
-        }
-    }
-
-    /**
-     * POST Request for Creating a Channel
-     */
-    @PostMapping("/workspaces/{id}/channels/create")
-    public String createChannel(@PathVariable("id") UUID workspaceId,
-                                @RequestParam("name") String name,
-                                @RequestParam("type") String type,
-                                Authentication authentication) {
-        String username = authentication.getName();
-        User currentUser = userService.getUserByUsername(username).orElseThrow();
-
-        try {
-            workspaceService.getWorkspaceIfMember(workspaceId, currentUser.getUserId());
-
-            channelService.createChannel(workspaceId, name, type, currentUser.getUserId());
-
-            return "redirect:/workspaces/" + workspaceId + "?channelCreated";
-        } catch (IllegalArgumentException e) {
-            return "redirect:/workspaces/" + workspaceId + "?channelError=" + e.getMessage();
         }
     }
 

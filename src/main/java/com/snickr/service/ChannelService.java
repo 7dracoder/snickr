@@ -42,4 +42,12 @@ public class ChannelService {
     public List<Channel> getChannelsForWorkspace(UUID workspaceId) {
         return channelRepository.findChannelsByWorkspaceId(workspaceId);
     }
+
+    /**
+     * Retrieve single channel details
+     */
+    public Channel getChannelById(UUID channelId) {
+        return channelRepository.findById(channelId)
+                .orElseThrow(() -> new IllegalArgumentException("找不到该频道"));
+    }
 }
