@@ -12,99 +12,50 @@
       background-color: #ffffff;
     }
 
-    .workspace-sidebar {
-      background-color: #3F0E40;
-      width: 70px;
+    /* Workspace Sidebar */
+    .workspace-sidebar { background-color: #3F0E40; width: 70px; display: flex; flex-direction: column; align-items: center; padding-top: 1rem; color: white; z-index: 10; }
+    .workspace-icon-btn { width: 42px; height: 42px; background-color: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; color: white; text-decoration: none; margin-bottom: 12px; transition: all 0.2s; border: 2px solid transparent; }
+    .workspace-icon-btn:hover { background-color: rgba(255,255,255,0.3); color: white; }
+    .workspace-icon-btn.active { border-color: white; background-color: rgba(255,255,255,0.25); }
+    .channel-sidebar { background-color: #f8f9fa; width: 260px; display: flex; flex-direction: column; border-right: 1px solid #e3e3e3; }
+    .workspace-header { padding: 1rem; border-bottom: 1px solid #e3e3e3; }
+    .workspace-header:hover { background-color: #f1f2f3; cursor: pointer; }
+    .channel-item { display: block; padding: 4px 8px; border-radius: 6px; color: #495057; text-decoration: none; margin-bottom: 2px; font-size: 0.95rem; transition: background-color 0.1s; }
+    .channel-item:hover { background-color: #e2e4e6; color: #212529; }
+    .channel-item.active { background-color: #1164A3; color: white !important; }
+    .channel-item.active:hover { background-color: #0B4C8C; }
+    .channel-item.active .text-muted { color: rgba(255,255,255,0.7) !important; }
+
+    .chat-main { flex-grow: 1; display: flex; flex-direction: column; background-color: #ffffff; }
+    .chat-header { padding: 1rem; border-bottom: 1px solid #e3e3e3; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Message List Styles */
+    .message-container {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 1rem;
-      color: white;
-      z-index: 10;
+      padding: 0.5rem 1rem;
+      margin-bottom: 0.5rem;
     }
-    .workspace-icon-btn {
-      width: 42px;
-      height: 42px;
-      background-color: rgba(255,255,255,0.15);
-      border-radius: 8px;
+    .message-container:hover {
+      background-color: #f8f9fa;
+    }
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      background-color: #e3e3e3;
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 1.2rem;
-      color: white;
-      text-decoration: none;
-      margin-bottom: 12px;
-      transition: all 0.2s;
-      border: 2px solid transparent;
-    }
-    .workspace-icon-btn:hover {
-      background-color: rgba(255,255,255,0.3);
-      color: white;
-    }
-    .workspace-icon-btn.active {
-      border-color: white;
-      background-color: rgba(255,255,255,0.25);
-    }
-
-    .channel-sidebar {
-      background-color: #f8f9fa;
-      width: 260px;
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid #e3e3e3;
-    }
-    .workspace-header {
-      padding: 1rem;
-      border-bottom: 1px solid #e3e3e3;
-    }
-    .workspace-header:hover {
-      background-color: #f1f2f3;
-      cursor: pointer;
-    }
-
-    .channel-item {
-      display: block;
-      padding: 4px 8px;
-      border-radius: 6px;
-      color: #495057;
-      text-decoration: none;
-      margin-bottom: 2px;
-      font-size: 0.95rem;
-      transition: background-color 0.1s;
-    }
-    .channel-item:hover {
-      background-color: #e2e4e6;
-      color: #212529;
-    }
-    .channel-item.active {
-      background-color: #1164A3;
-      color: white !important;
-    }
-    .channel-item.active:hover {
-      background-color: #0B4C8C;
-    }
-    .channel-item.active .text-muted {
-      color: rgba(255,255,255,0.7) !important;
-    }
-
-    .chat-main {
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      background-color: #ffffff;
-    }
-    .chat-header {
-      padding: 1rem;
-      border-bottom: 1px solid #e3e3e3;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      color: #6c757d;
+      margin-right: 12px;
+      flex-shrink: 0;
     }
   </style>
 </head>
 <body class="d-flex">
 
+<!-- Column 1: Workspace Sidebar -->
 <div class="workspace-sidebar shadow-sm">
   <a th:each="w : ${workspaces}"
      th:href="@{/workspaces/{id}(id=${w.workspaceId})}"
@@ -113,14 +64,12 @@
      th:title="${w.name}">
     <span th:text="${#strings.substring(w.name,0,1).toUpperCase()}">W</span>
   </a>
-
-  <a th:href="@{/dashboard}" class="workspace-icon-btn mt-auto mb-3" style="background-color: rgba(0,0,0,0.2);" title="Back to dashboard">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-house-door-fill" viewBox="0 0 16 16">
-      <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5Z"/>
-    </svg>
+  <a th:href="@{/dashboard}" class="workspace-icon-btn mt-auto mb-3" style="background-color: rgba(0,0,0,0.2);" title="Back to Dashboard">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-house-door-fill" viewBox="0 0 16 16"><path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5Z"/></svg>
   </a>
 </div>
 
+<!-- Column 2: Channel Sidebar -->
 <div class="channel-sidebar">
   <div class="workspace-header">
     <h5 class="fw-bold mb-0 text-dark text-truncate" th:text="${workspace.name}">Workspace Name</h5>
@@ -128,13 +77,10 @@
   </div>
 
   <div class="p-3 flex-grow-1 overflow-auto">
-
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div class="text-muted small fw-bold">Channels</div>
-      <button class="btn btn-sm text-muted p-0" data-bs-toggle="modal" data-bs-target="#createChannelModal" title="Create new channel">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-          <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/>
-        </svg>
+      <button class="btn btn-sm text-muted p-0" data-bs-toggle="modal" data-bs-target="#createChannelModal" title="Create New Channel">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/></svg>
       </button>
     </div>
 
@@ -147,133 +93,135 @@
         <span th:if="${ch.type == 'private'}" class="text-muted me-1">🔒</span>
         <span th:text="${ch.name}">channel-name</span>
       </a>
-
-      <div th:if="${#lists.isEmpty(channels)}" class="small text-muted fst-italic mt-2">
-        No channels yet. Click the top right corner to create one!
-      </div>
-    </div>
-
-    <div class="text-muted small fw-bold mt-4 mb-2">Direct Messages</div>
-    <div class="alert alert-light border small text-muted">
-      (DM List Placeholder)
+      <div th:if="${#lists.isEmpty(channels)}" class="small text-muted fst-italic mt-2">No channels yet. Click the top right corner to create one!</div>
     </div>
   </div>
 
   <div class="p-3 border-top mt-auto bg-light">
     <form th:action="@{/workspaces/{id}/invite(id=${workspace.workspaceId})}" method="post">
-      <label class="small fw-bold text-muted mb-1">Invite (email)</label>
+      <label class="small fw-bold text-muted mb-1">Invite Member (Email)</label>
       <div class="input-group input-group-sm">
-        <input type="email" name="email" class="form-control" required>
+        <input type="email" name="email" class="form-control" placeholder="user@example.com" required>
         <button class="btn btn-primary" type="submit">Send</button>
       </div>
-      <div th:if="${param.invited}" class="text-success small mt-1">The invitation has been sent！</div>
-      <div th:if="${param.inviteError != null and param.inviteError[0] == 'duplicate'}" class="text-danger small mt-1 fw-bold">This user has already been invited; awaiting a response.</div>
-      <div th:if="${param.inviteError != null and param.inviteError[0] == 'member'}" class="text-warning small mt-1 fw-bold">This user is already a member.</div>
+      <div th:if="${param.invited}" class="text-success small mt-1">🎉 Invitation sent successfully!</div>
+      <div th:if="${param.inviteError != null and param.inviteError[0] == 'duplicate'}" class="text-danger small mt-1 fw-bold">❌ Error: This user has a pending invitation.</div>
+      <div th:if="${param.inviteError != null and param.inviteError[0] == 'member'}" class="text-warning small mt-1 fw-bold">⚠️ Notice: This user is already a member.</div>
     </form>
   </div>
 </div>
 
+<!-- Column 3: Main Chat Area -->
 <div class="chat-main">
 
+  <!-- State A: No channel selected (Welcome screen) -->
   <th:block th:if="${activeChannel == null}">
     <div th:if="${param.channelCreated}" class="alert alert-success m-3 mb-0" role="alert">
-      Channel created successfully!
+      ✅ Channel created successfully!
     </div>
     <div th:if="${param.channelError}" class="alert alert-danger m-3 mb-0" role="alert" th:text="'Creation Failed: ' + ${param.channelError}">
     </div>
 
-  <div class="chat-header">
-    <h5 class="mb-0 fw-bold">Select a channel to start chatting</h5>
-  </div>
-
-    <div class="flex-grow-1 p-4 overflow-auto bg-light d-flex flex-column justify-content-center align-items-center">
-      <div class="text-center text-muted">
-        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-chat-square-dots text-secondary mb-3" viewBox="0 0 16 16" style="opacity: 0.5;">
-          <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
-          <path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-        </svg>
-        <h5>You have entered the workspace：<strong class="text-primary" th:text="${workspace.name}"></strong></h5>
-        <p>Click a channel name on the left to enter the chat room.</p>
-      </div>
+    <div class="chat-header"><h5 class="mb-0 fw-bold text-muted">Select a channel to start chatting</h5></div>
+    <div class="flex-grow-1 p-4 bg-light d-flex flex-column justify-content-center align-items-center text-muted">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-chat-square-dots mb-3" viewBox="0 0 16 16" style="opacity: 0.5;"><path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/><path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>
+      <h5>You have entered workspace: <strong class="text-primary" th:text="${workspace.name}"></strong></h5>
+      <p>Click a channel name on the left to enter the chat room.</p>
     </div>
-
-    <div class="p-3 bg-white border-top">
-      <div class="input-group">
-        <input type="text" class="form-control bg-light" disabled>
-        <button class="btn btn-secondary" type="button" disabled>Send</button>
-      </div>
-    </div>
+    <div class="p-3 bg-white border-top"><div class="input-group"><input type="text" class="form-control bg-light" placeholder="Select a channel to send messages..." disabled><button class="btn btn-secondary" type="button" disabled>Send</button></div></div>
   </th:block>
 
+  <!-- State B: Channel selected (Actual chat room) -->
   <th:block th:if="${activeChannel != null}">
-    <div class="chat-header">
+    <div class="chat-header shadow-sm z-1">
       <h5 class="mb-0 fw-bold d-flex align-items-center">
         <span th:if="${activeChannel.type == 'public'}" class="text-muted me-2 fs-5">#</span>
         <span th:if="${activeChannel.type == 'private'}" class="text-muted me-2 fs-5">🔒</span>
         <span th:text="${activeChannel.name}"></span>
-
-        <span class="badge bg-light text-dark border ms-3 fw-normal small" th:text="${activeChannel.type == 'public' ? 'public channel' : 'private channel'}"></span>
+        <span class="badge bg-light text-dark border ms-3 fw-normal small" th:text="${activeChannel.type == 'public' ? 'Public' : 'Private'}"></span>
       </h5>
     </div>
 
-    <div class="flex-grow-1 p-4 overflow-auto bg-light d-flex flex-column">
-      <div class="mt-auto">
-        <div class="mb-5 pb-3 border-bottom">
+    <!-- Scrolling message area -->
+    <div class="flex-grow-1 overflow-auto bg-white d-flex flex-column" id="messageScrollContainer">
+
+      <!-- Welcome header -->
+      <div class="p-4 mt-auto">
+        <div class="mb-4 pb-3 border-bottom">
           <h2 class="fw-bold mb-2">
             <span th:if="${activeChannel.type == 'public'}" class="text-muted"># </span>
             <span th:if="${activeChannel.type == 'private'}" class="text-muted">🔒 </span>
             <span th:text="${activeChannel.name}"></span>
           </h2>
+          <p class="text-muted">
+            This is the start of the <strong th:text="${activeChannel.name}"></strong> channel.
+            <span th:if="${activeChannel.type == 'public'}">Anyone in the workspace can view and join this channel.</span>
+            <span th:if="${activeChannel.type == 'private'}">This is a private channel, visible only to invited members.</span>
+          </p>
         </div>
+      </div>
 
-        <!-- TODO: Messages -->
-        <div class="alert alert-secondary text-center small mx-5">
-          (messages)
+      <!-- Render messages -->
+      <div class="pb-2">
+        <div class="message-container" th:each="msg : ${messages}">
+          <div class="message-avatar" th:text="${#strings.substring(msg.senderName,0,1).toUpperCase()}">U</div>
+          <div>
+            <div class="d-flex align-items-baseline mb-1">
+              <strong class="me-2" th:text="${msg.senderName}">Username</strong>
+              <small class="text-muted" th:text="${#temporals.format(msg.postedAt, 'MM-dd HH:mm')}">Date</small>
+            </div>
+            <div class="text-break" th:text="${msg.body}">Message content</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="p-3 bg-white border-top">
-      <form action="#" method="post" class="m-0">
-        <div class="input-group">
-          <input type="text" name="body" class="form-control bg-light border-secondary" th:placeholder="'Send messages to ' + ${activeChannel.name} + '...'" required>
-          <button class="btn btn-success fw-bold px-4" type="button">Sent</button>
+    <!-- Message input area -->
+    <div class="p-3 bg-light border-top">
+      <form th:action="@{/workspaces/{wsId}/channels/{chId}/messages(wsId=${workspace.workspaceId}, chId=${activeChannel.channelId})}" method="post" class="m-0">
+        <div class="input-group input-group-lg shadow-sm">
+          <input type="text" name="body" class="form-control border-0" th:placeholder="'Send a message to ' + ${activeChannel.name} + '...'" required autocomplete="off" autofocus>
+          <button class="btn btn-primary fw-bold px-4" type="submit">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send-fill me-1" viewBox="0 0 16 16"><path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/></svg>
+            Send
+          </button>
         </div>
       </form>
     </div>
   </th:block>
-
 </div>
 
+<!-- Create Channel Modal -->
 <div class="modal fade" id="createChannelModal" tabindex="-1" aria-labelledby="createChannelModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-light">
-        <h5 class="modal-title fw-bold text-dark" id="createChannelModalLabel">Create new channel</h5>
+        <h5 class="modal-title fw-bold text-dark" id="createChannelModalLabel">Create New Channel</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form th:action="@{/workspaces/{id}/channels/create(id=${workspace.workspaceId})}" method="post">
         <div class="modal-body p-4">
           <div class="mb-3">
-            <label for="channelName" class="form-label fw-bold">Channel name <span class="text-danger">*</span></label>
+            <label for="channelName" class="form-label fw-bold">Channel Name <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text bg-light border-end-0 text-muted">#</span>
-              <input type="text" class="form-control border-start-0 ps-0" id="channelName" name="name" required placeholder="eg：general, random">
+              <input type="text" class="form-control border-start-0 ps-0" id="channelName" name="name" required placeholder="e.g., general, random">
             </div>
+            <div class="form-text">The channel name will automatically be converted to lowercase with words separated by hyphens.</div>
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Visibility</label>
             <div class="form-check mb-2">
               <input class="form-check-input" type="radio" name="type" id="typePublic" value="public" checked>
               <label class="form-check-label fw-bold" for="typePublic">
-                Public
+                # Public
               </label>
               <div class="form-text mt-0">Anyone in the workspace can view and join this channel.</div>
             </div>
             <div class="form-check">
               <input class="form-check-input" type="radio" name="type" id="typePrivate" value="private">
               <label class="form-check-label fw-bold text-danger" for="typePrivate">
-                Private
+                🔒 Private
               </label>
               <div class="form-text mt-0">Only invited members can view and join this channel.</div>
             </div>
@@ -289,5 +237,14 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Auto-scroll to bottom of messages on load -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var scrollContainer = document.getElementById("messageScrollContainer");
+    if (scrollContainer) {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    }
+  });
+</script>
 </body>
 </html>
