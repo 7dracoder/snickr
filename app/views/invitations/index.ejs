@@ -1,0 +1,56 @@
+<%- include('../partials/head', { title: 'Invitations', currentUser: typeof currentUser !== 'undefined' ? currentUser : null, flash: typeof flash !== 'undefined' ? flash : null, pendingCount: 0 }) %>
+<div class="container" style="max-width:640px">
+  <div class="page-head">
+    <h1>Invitations</h1>
+  </div>
+
+  <% const total = wsInvites.length + chInvites.length; %>
+  <% if (total === 0) { %>
+    <div class="empty"><p>No pending invitations.</p></div>
+  <% } %>
+
+  <% if (wsInvites.length > 0) { %>
+    <p class="dim small mb-8">Workspace invitations</p>
+    <% wsInvites.forEach(inv => { %>
+      <div class="inv-card">
+        <div>
+          <h4><%= inv.workspace_name %></h4>
+          <p>Invited by @<%= inv.invited_by_name %> · <%= new Date(inv.invited_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) %></p>
+        </div>
+        <div class="inv-actions">
+          <form action="/invitations/workspace/<%= inv.invitation_id %>/respond" method="POST">
+            <input type="hidden" name="action" value="accepted" />
+            <button class="btn btn-primary btn-sm">Accept</button>
+          </form>
+          <form action="/invitations/workspace/<%= inv.invitation_id %>/respond" method="POST">
+            <input type="hidden" name="action" value="declined" />
+            <button class="btn btn-ghost btn-sm">Decline</button>
+          </form>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+
+  <% if (chInvites.length > 0) { %>
+    <p class="dim small mb-8 mt-24">Channel invitations</p>
+    <% chInvites.forEach(inv => { %>
+      <div class="inv-card">
+        <div>
+          <h4>#<%= inv.channel_name %> <span class="dim small">in <%= inv.workspace_name %></span></h4>
+          <p>Invited by @<%= inv.invited_by_name %> · <%= new Date(inv.invited_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) %></p>
+        </div>
+        <div class="inv-actions">
+          <form action="/invitations/channel/<%= inv.invitation_id %>/respond" method="POST">
+            <input type="hidden" name="action" value="accepted" />
+            <button class="btn btn-primary btn-sm">Accept</button>
+          </form>
+          <form action="/invitations/channel/<%= inv.invitation_id %>/respond" method="POST">
+            <input type="hidden" name="action" value="declined" />
+            <button class="btn btn-ghost btn-sm">Decline</button>
+          </form>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

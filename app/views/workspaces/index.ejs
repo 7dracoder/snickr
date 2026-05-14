@@ -1,0 +1,29 @@
+<%- include('../partials/head', { title: 'Workspaces', currentUser: typeof currentUser !== 'undefined' ? currentUser : null, flash: typeof flash !== 'undefined' ? flash : null, pendingCount: typeof pendingCount !== 'undefined' ? pendingCount : 0 }) %>
+<div class="container">
+  <div class="page-head">
+    <h1>Workspaces</h1>
+    <a href="/workspaces/new" class="btn btn-primary">+ New workspace</a>
+  </div>
+
+  <% if (workspaces.length === 0) { %>
+    <div class="empty">
+      <p>You're not in any workspaces yet.</p>
+      <a href="/workspaces/new" class="btn btn-primary">Create your first workspace</a>
+    </div>
+  <% } else { %>
+    <div class="ws-grid">
+      <% workspaces.forEach(ws => { %>
+        <a href="/workspaces/<%= ws.workspace_id %>" class="ws-card">
+          <div class="ws-card-icon"><%= ws.name.charAt(0).toUpperCase() %></div>
+          <h3><%= ws.name %></h3>
+          <p><%= ws.description || 'No description' %></p>
+          <div class="ws-card-meta">
+            <span class="dim xsmall"><%= ws.member_count %> member<%= ws.member_count != 1 ? 's' : '' %></span>
+            <% if (ws.is_admin) { %><span class="badge badge-admin">admin</span><% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

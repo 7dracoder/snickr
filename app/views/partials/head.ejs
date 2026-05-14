@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= typeof title !== 'undefined' ? title + ' · Snickr' : 'Snickr' %></title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<% const _cu = typeof currentUser !== 'undefined' ? currentUser : null; %>
+<% const _fl = typeof flash !== 'undefined' ? flash : null; %>
+<% if (_cu) { %>
+<nav class="navbar">
+  <a class="brand" href="/workspaces">Snickr</a>
+  <div class="nav-right">
+    <a href="/workspaces" class="nav-link">Workspaces</a>
+    <a href="/invitations" class="nav-link" style="position:relative">
+      Invitations
+      <% if (typeof pendingCount !== 'undefined' && pendingCount > 0) { %>
+        <span class="nav-badge"><%= pendingCount %></span>
+      <% } %>
+    </a>
+    <a href="/search" class="nav-link">Search</a>
+    <span class="nav-sep"></span>
+    <span class="nav-user">@<%= _cu.username %></span>
+    <form action="/logout" method="POST" style="display:inline">
+      <button class="btn btn-ghost btn-sm">Sign out</button>
+    </form>
+  </div>
+</nav>
+<% } %>
+<% if (_fl) { %>
+<div class="toast">
+  <div class="alert alert-<%= _fl.type %>"><%= _fl.message %></div>
+</div>
+<% } %>

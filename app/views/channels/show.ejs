@@ -1,0 +1,390 @@
+<%- include('../partials/head', { title: ch.workspace_name + ' · Snickr', currentUser: typeof currentUser !== 'undefined' ? currentUser : null, flash: typeof flash !== 'undefined' ? flash : null, pendingCount: 0 }) %>
+
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="/workspaces/<%= ch.workspace_id %>" class="sidebar-ws" style="display:block"><%= ch.workspace_name %></a>
+      <div class="sidebar-ws-sub">workspace</div>
+    </div>
+
+    <div class="sidebar-scroll">
+      <!-- Channels -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Channels</div>
+        <% allChannels.filter(c => c.channel_type !== 'direct').forEach(c => { %>
+          <a href="/channels/<%= c.channel_id %>"
+             class="sidebar-item <%= c.channel_id === ch.channel_id ? 'active' : '' %> <%= !c.is_member ? 'dim' : '' %>"
+             data-channel-id="<%= c.channel_id %>"
+             onclick="switchChannel(event, <%= c.channel_id %>)">
+            <span class="ch-sym"><% if (c.channel_type === 'private') { %>🔒<% } else { %>#<% } %></span>
+            <%= c.name %>
+          </a>
+        <% }) %>
+      </div>
+
+      <!-- DMs -->
+      <% const dmChannels = allChannels.filter(c => c.channel_type === 'direct'); %>
+      <% if (dmChannels.length > 0) { %>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Direct messages</div>
+        <% dmChannels.forEach(c => { %>
+          <a href="/channels/<%= c.channel_id %>"
+             class="sidebar-item <%= c.channel_id === ch.channel_id ? 'active' : '' %>"
+             data-channel-id="<%= c.channel_id %>"
+             onclick="switchChannel(event, <%= c.channel_id %>)">
+            <span class="ch-sym">@</span><%= c.name %>
+          </a>
+        <% }) %>
+      </div>
+      <% } %>
+
+      <!-- Members of current channel (updated dynamically) -->
+      <div class="sidebar-section" id="sidebar-members-section">
+        <div class="sidebar-section-label">Members · <span id="sidebar-member-count"><%= members.length %></span></div>
+        <div id="sidebar-members">
+          <% members.forEach(m => { %>
+            <div class="sidebar-item" style="cursor:default">
+              <div class="avatar avatar-sm"><%= m.username.charAt(0).toUpperCase() %></div>
+              <span class="small"><%= m.username %></span>
+              <% if (m.nickname) { %><span class="dim xsmall">(<%= m.nickname %>)</span><% } %>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+
+      <!-- Invite (private/direct, updated dynamically) -->
+      <div id="sidebar-invite-section" style="<%= (ch.is_member && (ch.channel_type==='private'||ch.channel_type==='direct') && inviteable.length>0) ? '' : 'display:none' %>">
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Invite to channel</div>
+          <div class="sidebar-form" id="sidebar-invite-form">
+            <form onsubmit="inviteMember(event)">
+              <select id="invite-select" style="width:100%;padding:5px 6px;font-size:12px;margin-bottom:4px">
+                <% inviteable.forEach(u => { %>
+                  <option value="<%= u.user_id %>"><%= u.username %></option>
+                <% }) %>
+              </select>
+              <button type="submit" class="btn btn-primary btn-sm" style="width:100%">Invite</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <a href="/workspaces/<%= ch.workspace_id %>" class="dim small">← <%= ch.workspace_name %></a>
+      <div id="sidebar-leave-btn">
+        <% if (ch.is_member && ch.channel_type !== 'direct') { %>
+        <form action="/channels/<%= ch.channel_id %>/leave" method="POST" id="leave-form">
+          <button class="btn btn-danger btn-xs" onclick="return confirm('Leave this channel?')">Leave channel</button>
+        </form>
+        <% } %>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main area -->
+  <div class="main-area" id="main-area">
+
+    <!-- Top bar -->
+    <div class="ch-topbar" id="ch-topbar">
+      <span class="ch-sym" id="ch-sym" style="font-size:15px;color:var(--text3)">
+        <%= ch.channel_type==='direct' ? '@' : ch.channel_type==='private' ? '🔒' : '#' %>
+      </span>
+      <span class="ch-topbar-name" id="ch-name"><%= ch.name %></span>
+      <span class="ch-topbar-type dim xsmall" id="ch-type"><%= ch.channel_type %></span>
+      <div class="ch-topbar-actions" id="ch-actions">
+        <% if (ch.channel_type === 'public' && !ch.is_member) { %>
+          <button class="btn btn-primary btn-sm" onclick="joinChannel(<%= ch.channel_id %>)">Join channel</button>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages-wrap" id="msg-list"></div>
+
+    <!-- Compose -->
+    <div id="compose-area"></div>
+  </div>
+</div>
+
+<script>
+const ME = <%= JSON.stringify({ user_id: currentUser.user_id, username: currentUser.username, nickname: currentUser.nickname }) %>;
+let currentChannelId = <%= ch.channel_id %>;
+let currentIsMember  = <%= ch.is_member ? 'true' : 'false' %>;
+let currentType      = '<%= ch.channel_type %>';
+
+// ── Render messages ──────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function renderMessages(messages) {
+  const list = document.getElementById('msg-list');
+  if (!messages.length) {
+    list.innerHTML = '<div class="empty" style="padding:40px 0"><p>No messages yet.' + (currentIsMember ? ' Say something!' : '') + '</p></div>';
+    return;
+  }
+  list.innerHTML = messages.map((msg, i) => {
+    const showHeader = i === 0 || messages[i-1].user_id !== msg.user_id;
+    const d = new Date(msg.posted_at);
+    const time = d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const isMe = msg.user_id === ME.user_id;
+    return `
+      <div class="msg-row" id="msg-${msg.message_id}">
+        <div class="msg-av" style="visibility:${showHeader?'visible':'hidden'}">${esc(msg.username.charAt(0).toUpperCase())}</div>
+        <div class="msg-content">
+          ${showHeader ? `<div class="msg-header">
+            <span class="msg-author">${esc(msg.username)}</span>
+            ${msg.nickname ? `<span class="dim xsmall">${esc(msg.nickname)}</span>` : ''}
+            <span class="msg-time">${time}</span>
+          </div>` : ''}
+          <div class="msg-text" id="msg-text-${msg.message_id}">${esc(msg.body).replace(/\n/g,'<br>')}</div>
+          ${isMe ? `<div class="msg-edit-form" id="edit-form-${msg.message_id}" style="display:none">
+            <form onsubmit="saveEdit(event,${msg.message_id})">
+              <textarea name="body" rows="2">${esc(msg.body)}</textarea>
+              <div class="msg-edit-actions">
+                <button type="submit" class="btn btn-primary btn-xs">Save</button>
+                <button type="button" class="btn btn-ghost btn-xs" onclick="cancelEdit(${msg.message_id})">Cancel</button>
+              </div>
+            </form>
+          </div>` : ''}
+        </div>
+        ${isMe ? `<div class="msg-actions">
+          <button class="btn-icon" title="Edit" onclick="startEdit(${msg.message_id})">✎</button>
+          <button class="btn-icon" title="Delete" onclick="deleteMsg(${msg.message_id})">✕</button>
+        </div>` : ''}
+      </div>`;
+  }).join('');
+  list.scrollTop = list.scrollHeight;
+}
+
+// ── Render compose area ──────────────────────────────────────
+function renderCompose(channelId, channelName, channelType, isMember) {
+  const area = document.getElementById('compose-area');
+  const sym  = channelType === 'direct' ? '@' : '#';
+  if (isMember) {
+    area.innerHTML = `
+      <div class="compose-wrap">
+        <div class="compose-box" id="compose-box">
+          <textarea class="compose-ta" id="compose-ta" rows="1"
+                    placeholder="Message ${sym}${channelName}"
+                    maxlength="4000"></textarea>
+          <button class="compose-send" id="compose-send">↑</button>
+        </div>
+        <p class="dim xsmall" style="margin-top:5px;padding-left:2px">Enter to send · Shift+Enter for new line</p>
+      </div>`;
+    bindCompose(channelId);
+  } else if (channelType === 'public') {
+    area.innerHTML = `<div class="join-notice"><span>You're not a member.</span>
+      <button class="btn btn-primary btn-sm" onclick="joinChannel(${channelId})">Join to post</button></div>`;
+  } else {
+    area.innerHTML = `<div class="join-notice"><span class="dim">You need an invitation to post here.</span></div>`;
+  }
+}
+
+function bindCompose(channelId) {
+  const ta   = document.getElementById('compose-ta');
+  const send = document.getElementById('compose-send');
+  if (!ta) return;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(channelId, ta); }
+  });
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+  });
+  send.addEventListener('click', () => sendMessage(channelId, ta));
+  ta.focus();
+}
+
+async function sendMessage(channelId, ta) {
+  const body = ta.value.trim();
+  if (!body) return;
+  ta.value = '';
+  ta.style.height = 'auto';
+  try {
+    const r = await fetch('/messages/api', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel_id: channelId, body })
+    });
+    if (!r.ok) throw new Error();
+    const msg = await r.json();
+    // Append the new message without full reload
+    const list = document.getElementById('msg-list');
+    const empty = list.querySelector('.empty');
+    if (empty) empty.remove();
+    const rows = list.querySelectorAll('.msg-row');
+    const lastUserId = rows.length ? parseInt(rows[rows.length-1].dataset.uid || 0) : 0;
+    const showHeader = lastUserId !== ME.user_id;
+    const d = new Date(msg.posted_at);
+    const time = d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const div = document.createElement('div');
+    div.className = 'msg-row';
+    div.id = 'msg-' + msg.message_id;
+    div.dataset.uid = ME.user_id;
+    div.innerHTML = `
+      <div class="msg-av" style="visibility:${showHeader?'visible':'hidden'}">${esc(ME.username.charAt(0).toUpperCase())}</div>
+      <div class="msg-content">
+        ${showHeader ? `<div class="msg-header">
+          <span class="msg-author">${esc(ME.username)}</span>
+          ${ME.nickname ? `<span class="dim xsmall">${esc(ME.nickname)}</span>` : ''}
+          <span class="msg-time">${time}</span>
+        </div>` : ''}
+        <div class="msg-text" id="msg-text-${msg.message_id}">${esc(msg.body).replace(/\n/g,'<br>')}</div>
+        <div class="msg-edit-form" id="edit-form-${msg.message_id}" style="display:none">
+          <form onsubmit="saveEdit(event,${msg.message_id})">
+            <textarea name="body" rows="2">${esc(msg.body)}</textarea>
+            <div class="msg-edit-actions">
+              <button type="submit" class="btn btn-primary btn-xs">Save</button>
+              <button type="button" class="btn btn-ghost btn-xs" onclick="cancelEdit(${msg.message_id})">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="msg-actions">
+        <button class="btn-icon" title="Edit" onclick="startEdit(${msg.message_id})">✎</button>
+        <button class="btn-icon" title="Delete" onclick="deleteMsg(${msg.message_id})">✕</button>
+      </div>`;
+    list.appendChild(div);
+    list.scrollTop = list.scrollHeight;
+  } catch { alert('Could not send message.'); }
+}
+
+// ── Switch channel without page reload ───────────────────────
+async function switchChannel(e, channelId) {
+  e.preventDefault();
+  if (channelId === currentChannelId) return;
+
+  // Update active state in sidebar
+  document.querySelectorAll('.sidebar-item[data-channel-id]').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.channelId) === channelId);
+  });
+
+  // Update URL without reload
+  history.pushState({ channelId }, '', '/channels/' + channelId);
+
+  await loadChannel(channelId);
+}
+
+async function loadChannel(channelId) {
+  try {
+    const r = await fetch('/channels/' + channelId + '/data');
+    if (!r.ok) { window.location = '/channels/' + channelId; return; }
+    const { ch, messages, members, inviteable } = await r.json();
+
+    currentChannelId = ch.channel_id;
+    currentIsMember  = ch.is_member;
+    currentType      = ch.channel_type;
+
+    // Update topbar
+    document.getElementById('ch-sym').textContent  = ch.channel_type==='direct' ? '@' : ch.channel_type==='private' ? '🔒' : '#';
+    document.getElementById('ch-name').textContent = ch.name;
+    document.getElementById('ch-type').textContent = ch.channel_type;
+
+    const actions = document.getElementById('ch-actions');
+    actions.innerHTML = (ch.channel_type === 'public' && !ch.is_member)
+      ? `<button class="btn btn-primary btn-sm" onclick="joinChannel(${ch.channel_id})">Join channel</button>`
+      : '';
+
+    // Update messages
+    renderMessages(messages);
+
+    // Update compose
+    renderCompose(ch.channel_id, ch.name, ch.channel_type, ch.is_member);
+
+    // Update members sidebar
+    document.getElementById('sidebar-member-count').textContent = members.length;
+    document.getElementById('sidebar-members').innerHTML = members.map(m => `
+      <div class="sidebar-item" style="cursor:default">
+        <div class="avatar avatar-sm">${esc(m.username.charAt(0).toUpperCase())}</div>
+        <span class="small">${esc(m.username)}</span>
+        ${m.nickname ? `<span class="dim xsmall">(${esc(m.nickname)})</span>` : ''}
+      </div>`).join('');
+
+    // Update invite section
+    const invSec = document.getElementById('sidebar-invite-section');
+    if (ch.is_member && (ch.channel_type==='private'||ch.channel_type==='direct') && inviteable.length > 0) {
+      invSec.style.display = '';
+      document.getElementById('invite-select').innerHTML = inviteable.map(u =>
+        `<option value="${u.user_id}">${esc(u.username)}</option>`).join('');
+    } else {
+      invSec.style.display = 'none';
+    }
+
+    // Update leave button
+    const leaveDiv = document.getElementById('sidebar-leave-btn');
+    leaveDiv.innerHTML = (ch.is_member && ch.channel_type !== 'direct')
+      ? `<form action="/channels/${ch.channel_id}/leave" method="POST">
+           <button class="btn btn-danger btn-xs" onclick="return confirm('Leave #${ch.name}?')">Leave channel</button>
+         </form>`
+      : '';
+
+    document.title = (ch.channel_type==='direct'?'@':'#') + ch.name + ' · Snickr';
+  } catch(err) {
+    console.error(err);
+    window.location = '/channels/' + channelId;
+  }
+}
+
+// Handle browser back/forward
+window.addEventListener('popstate', e => {
+  if (e.state && e.state.channelId) loadChannel(e.state.channelId);
+});
+
+// ── Edit / delete ────────────────────────────────────────────
+function startEdit(id) {
+  document.getElementById('msg-text-' + id).style.display = 'none';
+  document.getElementById('edit-form-' + id).style.display = 'block';
+}
+function cancelEdit(id) {
+  document.getElementById('msg-text-' + id).style.display = '';
+  document.getElementById('edit-form-' + id).style.display = 'none';
+}
+async function saveEdit(e, id) {
+  e.preventDefault();
+  const body = e.target.querySelector('textarea').value.trim();
+  if (!body) return;
+  const r = await fetch('/messages/' + id + '/edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'body=' + encodeURIComponent(body)
+  });
+  if (r.ok || r.redirected) {
+    document.getElementById('msg-text-' + id).innerHTML = esc(body).replace(/\n/g,'<br>');
+    cancelEdit(id);
+  }
+}
+async function deleteMsg(id) {
+  if (!confirm('Delete this message?')) return;
+  const r = await fetch('/messages/' + id + '/delete', { method: 'POST' });
+  if (r.ok || r.redirected) {
+    const el = document.getElementById('msg-' + id);
+    if (el) el.remove();
+  }
+}
+
+async function joinChannel(channelId) {
+  const r = await fetch('/channels/' + channelId + '/join', { method: 'POST' });
+  if (r.ok || r.redirected) await loadChannel(channelId);
+}
+
+async function inviteMember(e) {
+  e.preventDefault();
+  const sel = document.getElementById('invite-select');
+  const inviteeId = sel.value;
+  const r = await fetch('/channels/' + currentChannelId + '/invite', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'invitee_id=' + inviteeId
+  });
+  if (r.ok || r.redirected) await loadChannel(currentChannelId);
+}
+
+// ── Initial render ───────────────────────────────────────────
+renderMessages(<%- JSON.stringify(messages) %>);
+renderCompose(<%= ch.channel_id %>, '<%= ch.name.replace(/'/g, "\\'") %>', '<%= ch.channel_type %>', <%= ch.is_member ? 'true' : 'false' %>);
+history.replaceState({ channelId: <%= ch.channel_id %> }, '', '/channels/<%= ch.channel_id %>');
+</script>
+<%- include('../partials/foot') %>

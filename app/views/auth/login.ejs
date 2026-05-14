@@ -1,0 +1,29 @@
+<%- include('../partials/head', { title: 'Sign in', currentUser: null, flash: typeof flash !== 'undefined' ? flash : null }) %>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="auth-logo-name">Snickr</span>
+    </div>
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in to continue</p>
+
+    <% if (errors.length) { %>
+      <% errors.forEach(e => { %><div class="alert alert-error"><%= e.msg %></div><% }) %>
+    <% } %>
+
+    <form action="/login" method="POST" novalidate>
+      <div class="field">
+        <label class="field-label">Username</label>
+        <input type="text" name="username" required autocomplete="username" autofocus />
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" name="password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:6px">Sign in</button>
+    </form>
+
+    <p class="auth-footer">No account? <a href="/register">Create one</a></p>
+  </div>
+</div>
+<%- include('../partials/foot') %>

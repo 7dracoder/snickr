@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= typeof title !== 'undefined' ? title + ' · Snickr' : 'Snickr' %></title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <a class="brand" href="/workspaces">⚡ Snickr</a>
+    <% if (currentUser) { %>
+      <div class="nav-links">
+        <a href="/workspaces">Workspaces</a>
+        <a href="/invitations" class="nav-invites">Invitations</a>
+        <a href="/search">Search</a>
+        <span class="nav-user">@<%= currentUser.username %></span>
+        <form action="/logout" method="POST" style="display:inline">
+          <button class="btn btn-sm btn-ghost">Logout</button>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="nav-links">
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+      </div>
+    <% } %>
+  </nav>
+
+  <main class="container">
+    <% if (flash) { %>
+      <div class="alert alert-<%= flash.type %>"><%= flash.message %></div>
+    <% } %>
+    <%- body %>
+  </main>
+
+  <footer class="footer">Snickr &copy; 2026 · CS6083 Project 2</footer>
+</body>
+</html>

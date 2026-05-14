@@ -1,0 +1,42 @@
+<%- include('../partials/head', { title: 'Create account', currentUser: null, flash: typeof flash !== 'undefined' ? flash : null }) %>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="auth-logo-name">Snickr</span>
+    </div>
+    <h1>Create an account</h1>
+    <p class="sub">Start messaging in minutes</p>
+
+    <% if (errors.length) { %>
+      <% errors.forEach(e => { %><div class="alert alert-error"><%= e.msg %></div><% }) %>
+    <% } %>
+
+    <form action="/register" method="POST" novalidate>
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" name="email" required autocomplete="email" autofocus />
+      </div>
+      <div class="field">
+        <label class="field-label">Username</label>
+        <input type="text" name="username" required minlength="3" maxlength="30" pattern="[a-zA-Z0-9_]+" />
+        <p class="field-hint">3–30 chars, letters, numbers, underscore</p>
+      </div>
+      <div class="field">
+        <label class="field-label">Display name <span class="dim">(optional)</span></label>
+        <input type="text" name="nickname" maxlength="50" />
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" name="password" required minlength="6" />
+      </div>
+      <div class="field">
+        <label class="field-label">Confirm password</label>
+        <input type="password" name="confirm_password" required />
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:6px">Create account</button>
+    </form>
+
+    <p class="auth-footer">Already have an account? <a href="/login">Sign in</a></p>
+  </div>
+</div>
+<%- include('../partials/foot') %>

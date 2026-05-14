@@ -1,0 +1,9 @@
+<%- include('partials/head', { title: 'Error', currentUser: typeof currentUser !== 'undefined' ? currentUser : null, flash: null, pendingCount: 0 }) %>
+<div class="container">
+  <div class="error-page">
+    <div class="error-code"><%= code %></div>
+    <p class="error-msg"><%= message %></p>
+    <a href="/workspaces" class="btn btn-ghost">Go home</a>
+  </div>
+</div>
+<%- include('partials/foot') %>

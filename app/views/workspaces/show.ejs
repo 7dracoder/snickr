@@ -1,0 +1,107 @@
+<%- include('../partials/head', { title: ws.name, currentUser: typeof currentUser !== 'undefined' ? currentUser : null, flash: typeof flash !== 'undefined' ? flash : null, pendingCount: 0 }) %>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-ws"><%= ws.name %></div>
+      <div class="sidebar-ws-sub">workspace overview</div>
+    </div>
+
+    <div class="sidebar-scroll">
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Channels</div>
+        <% channels.filter(c => c.channel_type !== 'direct').forEach(ch => { %>
+          <a href="/channels/<%= ch.channel_id %>"
+             class="sidebar-item <%= !ch.is_member ? 'dim' : '' %>">
+            <span class="ch-sym">
+              <% if (ch.channel_type === 'private') { %>🔒
+              <% } else { %>#<% } %>
+            </span>
+            <%= ch.name %>
+          </a>
+        <% }) %>
+      </div>
+
+      <% if (dmTargets.length > 0) { %>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Direct messages</div>
+        <% channels.filter(c => c.channel_type === 'direct').forEach(ch => { %>
+          <a href="/channels/<%= ch.channel_id %>" class="sidebar-item">
+            <span class="ch-sym">@</span><%= ch.name %>
+          </a>
+        <% }) %>
+        <div class="sidebar-form">
+          <form action="/channels/dm" method="POST">
+            <input type="hidden" name="workspace_id" value="<%= ws.workspace_id %>" />
+            <select name="target_user_id" style="width:100%;padding:5px 6px;font-size:12px;margin-bottom:4px">
+              <% dmTargets.forEach(m => { %>
+                <option value="<%= m.user_id %>"><%= m.username %><% if (m.nickname) { %> (<%= m.nickname %>)<% } %></option>
+              <% }) %>
+            </select>
+            <button type="submit" class="btn btn-ghost btn-sm" style="width:100%">+ New DM</button>
+          </form>
+        </div>
+      </div>
+      <% } %>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">New channel</div>
+        <div class="sidebar-form">
+          <form action="/channels" method="POST">
+            <input type="hidden" name="workspace_id" value="<%= ws.workspace_id %>" />
+            <input type="text" name="name" placeholder="channel-name" required
+                   pattern="[a-zA-Z0-9_-]+" minlength="2" maxlength="80" class="inp-sm" style="width:100%;margin-bottom:4px" />
+            <div class="flex gap-6">
+              <select name="channel_type" style="flex:1;padding:5px 6px;font-size:12px">
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+              <button type="submit" class="btn btn-primary btn-sm">Create</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <a href="/workspaces" class="dim small">← All workspaces</a>
+      <form action="/workspaces/<%= ws.workspace_id %>/leave" method="POST">
+        <button class="btn btn-danger btn-xs" onclick="return confirm('Leave this workspace?')">Leave workspace</button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-area">
+    <div class="ws-overview">
+
+      <div class="section-title">Members · <%= members.length %></div>
+      <div class="member-list" style="margin-bottom:28px">
+        <% members.forEach(m => { %>
+          <div class="member-row">
+            <div class="avatar"><%= m.username.charAt(0).toUpperCase() %></div>
+            <div class="member-info">
+              <span class="member-name"><%= m.username %></span>
+              <% if (m.nickname) { %><span class="member-nick"> · <%= m.nickname %></span><% } %>
+            </div>
+            <% if (m.is_admin) { %><span class="badge badge-admin">admin</span><% } %>
+          </div>
+        <% }) %>
+      </div>
+
+      <% if (ws.is_admin) { %>
+      <div class="section-title">Invite people</div>
+      <form action="/workspaces/<%= ws.workspace_id %>/invite" method="POST"
+            class="flex gap-8 items-center" style="margin-bottom:8px">
+        <input type="email" name="invitee_email" placeholder="colleague@example.com"
+               required style="max-width:280px" />
+        <button type="submit" class="btn btn-primary btn-sm">Send invite</button>
+      </form>
+      <p class="dim xsmall">They'll see the invitation when they log in.</p>
+      <% } %>
+
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

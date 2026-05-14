@@ -1,0 +1,13 @@
+# Dependencies
+app/node_modules/
+
+# Environment secrets
+app/.env
+
+# Temp/debug scripts
+app/seed_admin.js
+app/verify_admin.js
+
+# OS
+.DS_Store
+Thumbs.db

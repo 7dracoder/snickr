@@ -1,0 +1,81 @@
+erDiagram
+    USERS {
+        int user_id PK
+        varchar email
+        varchar username
+        varchar nickname
+        varchar password
+        timestamp created_at
+    }
+    WORKSPACES {
+        int workspace_id PK
+        varchar name
+        text description
+        int creator_id FK
+        timestamp created_at
+    }
+    WORKSPACE_MEMBERS {
+        int workspace_id FK
+        int user_id FK
+        timestamp joined_at
+    }
+    WORKSPACE_ADMINS {
+        int workspace_id FK
+        int user_id FK
+        timestamp granted_at
+    }
+    WORKSPACE_INVITATIONS {
+        int invitation_id PK
+        int workspace_id FK
+        int invited_by FK
+        varchar invitee_email
+        int invitee_id FK
+        varchar status
+        timestamp invited_at
+        timestamp responded_at
+    }
+    CHANNELS {
+        int channel_id PK
+        int workspace_id FK
+        varchar name
+        varchar channel_type
+        int creator_id FK
+        timestamp created_at
+    }
+    CHANNEL_MEMBERSHIPS {
+        int channel_id FK
+        int user_id FK
+        timestamp joined_at
+    }
+    CHANNEL_INVITATIONS {
+        int invitation_id PK
+        int channel_id FK
+        int invited_by FK
+        int invitee_id FK
+        varchar status
+        timestamp invited_at
+        timestamp responded_at
+    }
+    MESSAGES {
+        int message_id PK
+        int channel_id FK
+        int sender_id FK
+        text body
+        timestamp posted_at
+    }
+
+    USERS ||--o{ WORKSPACES : "creates"
+    USERS ||--o{ WORKSPACE_MEMBERS : "belongs to"
+    WORKSPACES ||--o{ WORKSPACE_MEMBERS : "has"
+    USERS ||--o{ WORKSPACE_ADMINS : "administers"
+    WORKSPACES ||--o{ WORKSPACE_ADMINS : "has admins"
+    WORKSPACES ||--o{ WORKSPACE_INVITATIONS : "sends"
+    USERS ||--o{ WORKSPACE_INVITATIONS : "invited by"
+    WORKSPACES ||--o{ CHANNELS : "contains"
+    USERS ||--o{ CHANNELS : "creates"
+    CHANNELS ||--o{ CHANNEL_MEMBERSHIPS : "has"
+    USERS ||--o{ CHANNEL_MEMBERSHIPS : "joins"
+    CHANNELS ||--o{ CHANNEL_INVITATIONS : "sends"
+    USERS ||--o{ CHANNEL_INVITATIONS : "invites"
+    CHANNELS ||--o{ MESSAGES : "contains"
+    USERS ||--o{ MESSAGES : "posts"

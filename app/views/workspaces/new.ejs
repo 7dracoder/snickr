@@ -1,0 +1,28 @@
+<%- include('../partials/head', { title: 'New workspace', currentUser: typeof currentUser !== 'undefined' ? currentUser : null, flash: typeof flash !== 'undefined' ? flash : null, pendingCount: 0 }) %>
+<div class="container" style="max-width:500px">
+  <div class="page-head">
+    <h1>New workspace</h1>
+  </div>
+
+  <% if (errors.length) { %>
+    <% errors.forEach(e => { %><div class="alert alert-error"><%= e.msg %></div><% }) %>
+  <% } %>
+
+  <div class="card">
+    <form action="/workspaces" method="POST">
+      <div class="field">
+        <label class="field-label">Name</label>
+        <input type="text" name="name" required minlength="2" maxlength="100" autofocus />
+      </div>
+      <div class="field">
+        <label class="field-label">Description <span class="dim">(optional)</span></label>
+        <textarea name="description" rows="3" maxlength="500"></textarea>
+      </div>
+      <div class="flex gap-8" style="justify-content:flex-end;margin-top:8px">
+        <a href="/workspaces" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create workspace</button>
+      </div>
+    </form>
+  </div>
+</div>
+<%- include('../partials/foot') %>

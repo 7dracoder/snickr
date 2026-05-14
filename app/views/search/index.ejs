@@ -1,0 +1,52 @@
+<%- include('../partials/head', { title: 'Search', currentUser: typeof currentUser !== 'undefined' ? currentUser : null, flash: typeof flash !== 'undefined' ? flash : null, pendingCount: 0 }) %>
+<div class="container" style="max-width:740px">
+  <div class="page-head">
+    <h1>Search messages</h1>
+  </div>
+
+  <form action="/search" method="GET" class="search-bar">
+    <input type="text" name="q" value="<%= q %>" placeholder="Search across your channels…" autofocus />
+    <select name="workspace_id" style="width:180px">
+      <option value="">All workspaces</option>
+      <% workspaces.forEach(ws => { %>
+        <option value="<%= ws.workspace_id %>" <%= wsId === ws.workspace_id ? 'selected' : '' %>>
+          <%= ws.name %>
+        </option>
+      <% }) %>
+    </select>
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+
+  <% if (typeof error !== 'undefined') { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+
+  <% if (q && results.length === 0) { %>
+    <div class="empty"><p>No results for "<%= q %>"</p></div>
+  <% } %>
+
+  <% if (results.length > 0) { %>
+    <p class="dim small mb-8"><%= results.length %> result<%= results.length !== 1 ? 's' : '' %> for "<%= q %>"</p>
+    <% results.forEach(r => { %>
+      <a href="/channels/<%= r.channel_id %>#msg-<%= r.message_id %>" class="result-card">
+        <div class="result-meta">
+          <span class="result-author">@<%= r.sender_username %></span>
+          <span class="result-where">
+            <% if (r.channel_type === 'direct') { %>@<% } else { %>#<% } %><%= r.channel_name %> · <%= r.workspace_name %>
+          </span>
+          <span class="result-time"><%= new Date(r.posted_at).toLocaleDateString('en-US', {month:'short',day:'numeric'}) %></span>
+        </div>
+        <div class="result-body">
+          <%
+            const esc = r.body
+              .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+            const hi = esc.replace(re, '<mark>$1</mark>');
+          %>
+          <%- hi %>
+        </div>
+      </a>
+    <% }) %>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

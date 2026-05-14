@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: snickr
+      POSTGRES_USER: snickr_user
+      POSTGRES_PASSWORD: snickr_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./03_sample_data.sql:/docker-entrypoint-initdb.d/03_sample_data.sql
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+    command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
+
+volumes:
+  pgdata:
