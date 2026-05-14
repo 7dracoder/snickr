@@ -60,4 +60,11 @@ public class UserService {
     public Optional<User> getUserByUsername(String username) {
         return userRepository.findByUsername(username);
     }
+
+    /**
+     * Get all members of a workspace
+     */
+    public java.util.List<User> getUsersInWorkspace(java.util.UUID workspaceId) {
+        return userRepository.findUsersByWorkspaceId(workspaceId);
+    }
 }

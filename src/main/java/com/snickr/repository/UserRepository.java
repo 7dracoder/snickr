@@ -69,4 +69,15 @@ public class UserRepository {
         List<User> users = jdbcTemplate.query(sql, userRowMapper, email);
         return users.stream().findFirst();
     }
+
+    /**
+     * Find all users that belong to a specific workspace
+     */
+    public List<User> findUsersByWorkspaceId(UUID workspaceId) {
+        String sql = "SELECT u.* FROM users u " +
+                "JOIN workspace_memberships wm ON u.user_id = wm.user_id " +
+                "WHERE wm.workspace_id = ? " +
+                "ORDER BY u.username ASC";
+        return jdbcTemplate.query(sql, userRowMapper, workspaceId);
+    }
 }

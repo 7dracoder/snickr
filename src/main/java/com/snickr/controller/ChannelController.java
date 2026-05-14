@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controller for handling Channel and Direct Message requests
+ */
 @Controller
 public class ChannelController {
 
@@ -47,8 +50,13 @@ public class ChannelController {
             List<Workspace> allWorkspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
             List<Channel> channels = channelService.getChannelsForWorkspace(workspaceId, currentUser.getUserId());
 
+            // Fetch Workspace Members and Direct Channels for the Sidebar
+            List<User> workspaceMembers = userService.getUsersInWorkspace(workspaceId);
+            List<Channel> directChannels = channelService.getDirectChannelsForWorkspace(workspaceId, currentUser.getUserId());
+
             Channel activeChannel = channelService.getChannelById(channelId);
 
+            // Access control for private channels
             if ("private".equals(activeChannel.getType())) {
                 boolean hasAccess = channels.stream().anyMatch(c -> c.getChannelId().equals(activeChannel.getChannelId()));
                 if (!hasAccess) {
@@ -56,11 +64,19 @@ public class ChannelController {
                 }
             }
 
+            // Dynamically set DM name to the other user's username for UI display
+            if ("direct".equals(activeChannel.getType())) {
+                String otherUsername = channelService.getDirectChannelOtherUserName(channelId, currentUser.getUserId());
+                activeChannel.setName(otherUsername);
+            }
+
             List<Message> messages = messageService.getMessagesForChannel(channelId);
 
             model.addAttribute("workspace", currentWorkspace);
             model.addAttribute("workspaces", allWorkspaces);
             model.addAttribute("channels", channels);
+            model.addAttribute("workspaceMembers", workspaceMembers);
+            model.addAttribute("directChannels", directChannels);
             model.addAttribute("activeChannel", activeChannel);
             model.addAttribute("messages", messages);
             model.addAttribute("currentUser", currentUser);
@@ -112,6 +128,26 @@ public class ChannelController {
             return "redirect:/workspaces/" + workspaceId + "/channels/" + channelId;
         } catch (IllegalArgumentException e) {
             return "redirect:/workspaces/" + workspaceId + "/channels/" + channelId + "?error=empty";
+        }
+    }
+
+    /**
+     * Handle creating or opening a Direct Message
+     */
+    @PostMapping("/workspaces/{id}/dms/create")
+    public String createDirectMessage(@PathVariable("id") UUID workspaceId,
+                                      @RequestParam("targetUserId") UUID targetUserId,
+                                      Authentication authentication) {
+        String username = authentication.getName();
+        User currentUser = userService.getUserByUsername(username).orElseThrow();
+
+        try {
+            workspaceService.getWorkspaceIfMember(workspaceId, currentUser.getUserId());
+            Channel dmChannel = channelService.getOrCreateDirectMessage(workspaceId, currentUser.getUserId(), targetUserId);
+
+            return "redirect:/workspaces/" + workspaceId + "/channels/" + dmChannel.getChannelId();
+        } catch (Exception e) {
+            return "redirect:/workspaces/" + workspaceId + "?error=dm_failed";
         }
     }
 }

@@ -50,12 +50,18 @@ public class SearchController {
             List<Workspace> allWorkspaces = workspaceService.getWorkspacesForUser(currentUser.getUserId());
             List<Channel> channels = channelService.getChannelsForWorkspace(workspaceId, currentUser.getUserId());
 
+            // Fetch Workspace Members and Direct Channels for the Sidebar
+            List<User> workspaceMembers = userService.getUsersInWorkspace(workspaceId);
+            List<Channel> directChannels = channelService.getDirectChannelsForWorkspace(workspaceId, currentUser.getUserId());
+
             // Perform global search
             List<Message> searchResults = messageService.searchMessagesInWorkspace(workspaceId, currentUser.getUserId(), keyword);
 
             model.addAttribute("workspace", currentWorkspace);
             model.addAttribute("workspaces", allWorkspaces);
             model.addAttribute("channels", channels);
+            model.addAttribute("workspaceMembers", workspaceMembers);
+            model.addAttribute("directChannels", directChannels);
             model.addAttribute("activeChannel", null);
 
             // Add search specific attributes

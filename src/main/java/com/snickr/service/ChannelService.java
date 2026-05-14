@@ -50,4 +50,26 @@ public class ChannelService {
         return channelRepository.findById(channelId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot find channel with id: " + channelId));
     }
+
+    /**
+     * Get or create a direct message channel between two users
+     */
+    public Channel getOrCreateDirectMessage(UUID workspaceId, UUID creatorId, UUID targetUserId) {
+        return channelRepository.findDirectChannelBetweenUsers(workspaceId, creatorId, targetUserId)
+                .orElseGet(() -> channelRepository.createDirectChannel(workspaceId, creatorId, targetUserId));
+    }
+
+    /**
+     * Fetch all DM channels for the sidebar
+     */
+    public List<Channel> getDirectChannelsForWorkspace(UUID workspaceId, UUID userId) {
+        return channelRepository.findDirectChannelsForUser(workspaceId, userId);
+    }
+
+    /**
+     * Helper to retrieve the other user's name for UI display
+     */
+    public String getDirectChannelOtherUserName(UUID channelId, UUID userId) {
+        return channelRepository.getOtherUsernameInDirectChannel(channelId, userId);
+    }
 }
