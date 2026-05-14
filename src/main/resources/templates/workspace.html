@@ -326,8 +326,37 @@
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     var scrollContainer = document.getElementById("messageScrollContainer");
+
     if (scrollContainer) {
+      // Initial scroll to bottom on page load
       scrollContainer.scrollTop = scrollContainer.scrollHeight;
+
+      // Set up AJAX polling every 2 seconds to fetch new messages
+      setInterval(function() {
+        // Fetch the current URL
+        fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                  // Parse the incoming HTML
+                  var parser = new DOMParser();
+                  var doc = parser.parseFromString(html, "text/html");
+                  var newContainer = doc.getElementById("messageScrollContainer");
+
+                  if (newContainer) {
+                    // Check if user is currently scrolled near the bottom
+                    var isNearBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop <= scrollContainer.clientHeight + 50;
+
+                    // Replace the old message list with the newly fetched one
+                    scrollContainer.innerHTML = newContainer.innerHTML;
+
+                    // Auto-scroll down if they were already at the bottom
+                    if (isNearBottom) {
+                      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                    }
+                  }
+                })
+                .catch(error => console.error("Error fetching new messages:", error));
+      }, 2000); // 2000 ms = 2 seconds
     }
   });
 </script>
