@@ -21,4 +21,5 @@ public class Message {
     private OffsetDateTime postedAt;
 
     private String senderName;
+    private String channelName;
 }

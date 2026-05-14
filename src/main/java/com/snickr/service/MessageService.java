@@ -26,4 +26,14 @@ public class MessageService {
     public List<Message> getMessagesForChannel(UUID channelId) {
         return messageRepository.findMessagesByChannelId(channelId);
     }
+
+    /**
+     * Search messages by keyword within the authorized scope
+     */
+    public List<Message> searchMessagesInWorkspace(UUID workspaceId, UUID userId, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return List.of();
+        }
+        return messageRepository.searchMessages(workspaceId, userId, keyword.trim());
+    }
 }

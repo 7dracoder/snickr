@@ -6,11 +6,7 @@
   <title th:text="${workspace.name} + ' - Snickr'">Workspace - Snickr</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      height: 100vh;
-      overflow: hidden;
-      background-color: #ffffff;
-    }
+    body { height: 100vh; overflow: hidden; background-color: #ffffff; }
 
     /* Workspace Sidebar */
     .workspace-sidebar { background-color: #3F0E40; width: 70px; display: flex; flex-direction: column; align-items: center; padding-top: 1rem; color: white; z-index: 10; }
@@ -30,27 +26,12 @@
     .chat-header { padding: 1rem; border-bottom: 1px solid #e3e3e3; display: flex; justify-content: space-between; align-items: center; }
 
     /* Message List Styles */
-    .message-container {
-      display: flex;
-      padding: 0.5rem 1rem;
-      margin-bottom: 0.5rem;
-    }
-    .message-container:hover {
-      background-color: #f8f9fa;
-    }
-    .message-avatar {
-      width: 36px;
-      height: 36px;
-      background-color: #e3e3e3;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      color: #6c757d;
-      margin-right: 12px;
-      flex-shrink: 0;
-    }
+    .message-container { display: flex; padding: 0.5rem 1rem; margin-bottom: 0.5rem; }
+    .message-container:hover { background-color: #f8f9fa; }
+    .message-avatar { width: 36px; height: 36px; background-color: #e3e3e3; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #6c757d; margin-right: 12px; flex-shrink: 0; }
+
+    /* Search Result Styles */
+    .search-highlight { background-color: #fff3cd; padding: 2px 4px; border-radius: 3px; font-weight: bold;}
   </style>
 </head>
 <body class="d-flex">
@@ -77,6 +58,19 @@
   </div>
 
   <div class="p-3 flex-grow-1 overflow-auto">
+
+    <!-- Global Search Bar -->
+    <div class="mb-4">
+      <form th:action="@{/workspaces/{wsId}/search(wsId=${workspace.workspaceId})}" method="get">
+        <div class="input-group input-group-sm">
+          <input type="text" name="q" class="form-control bg-light" placeholder="Search messages..." th:value="${searchKeyword}" required>
+          <button class="btn btn-outline-secondary bg-light border" type="submit">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div class="text-muted small fw-bold">Channels</div>
       <button class="btn btn-sm text-muted p-0" data-bs-toggle="modal" data-bs-target="#createChannelModal" title="Create New Channel">
@@ -114,21 +108,62 @@
 <!-- Column 3: Main Chat Area -->
 <div class="chat-main">
 
-  <!-- State A: No channel selected (Welcome screen) -->
-  <th:block th:if="${activeChannel == null}">
+  <!-- State A: No channel selected & Not Searching (Welcome screen) -->
+  <th:block th:if="${activeChannel == null and searchResults == null}">
     <div th:if="${param.channelCreated}" class="alert alert-success m-3 mb-0" role="alert">
       ✅ Channel created successfully!
     </div>
-    <div th:if="${param.channelError}" class="alert alert-danger m-3 mb-0" role="alert" th:text="'Creation Failed: ' + ${param.channelError}">
-    </div>
+    <div th:if="${param.channelError}" class="alert alert-danger m-3 mb-0" role="alert" th:text="'Creation Failed: ' + ${param.channelError}"></div>
 
     <div class="chat-header"><h5 class="mb-0 fw-bold text-muted">Select a channel to start chatting</h5></div>
     <div class="flex-grow-1 p-4 bg-light d-flex flex-column justify-content-center align-items-center text-muted">
       <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-chat-square-dots mb-3" viewBox="0 0 16 16" style="opacity: 0.5;"><path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/><path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>
       <h5>You have entered workspace: <strong class="text-primary" th:text="${workspace.name}"></strong></h5>
-      <p>Click a channel name on the left to enter the chat room.</p>
+      <p>Click a channel name on the left to enter the chat room, or use the search bar above.</p>
     </div>
     <div class="p-3 bg-white border-top"><div class="input-group"><input type="text" class="form-control bg-light" placeholder="Select a channel to send messages..." disabled><button class="btn btn-secondary" type="button" disabled>Send</button></div></div>
+  </th:block>
+
+  <!-- State C: Search Results Display -->
+  <th:block th:if="${searchResults != null}">
+    <div class="chat-header shadow-sm z-1 bg-white">
+      <h5 class="mb-0 fw-bold d-flex align-items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-search me-2 text-muted" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+        Search Results
+      </h5>
+    </div>
+
+    <div class="flex-grow-1 p-4 overflow-auto bg-light d-flex flex-column">
+      <div class="mb-4 pb-2 border-bottom">
+        <h4 class="fw-bold">Results for "<span class="text-primary" th:text="${searchKeyword}"></span>"</h4>
+        <p class="text-muted mb-0">Found <span th:text="${#lists.size(searchResults)}">0</span> messages across your authorized channels.</p>
+      </div>
+
+      <div th:if="${#lists.isEmpty(searchResults)}" class="text-center mt-5 text-muted">
+        <h5>No messages found.</h5>
+        <p>Try searching with different keywords.</p>
+      </div>
+
+      <div class="pb-2">
+        <div class="message-container border rounded bg-white mb-3 shadow-sm p-3" th:each="msg : ${searchResults}">
+          <div class="message-avatar" th:text="${#strings.substring(msg.senderName,0,1).toUpperCase()}">U</div>
+          <div class="w-100">
+            <div class="d-flex justify-content-between align-items-baseline mb-1">
+              <div>
+                <strong class="me-2" th:text="${msg.senderName}">Username</strong>
+                <small class="text-muted" th:text="${#temporals.format(msg.postedAt, 'yyyy-MM-dd HH:mm')}">Date</small>
+              </div>
+              <a th:href="@{/workspaces/{wsId}/channels/{chId}(wsId=${workspace.workspaceId}, chId=${msg.channelId})}"
+                 class="badge bg-secondary text-decoration-none">
+                # <span th:text="${msg.channelName}">channel</span>
+              </a>
+            </div>
+            <!-- Simple highlight using mark tag for exact match styling -->
+            <div class="text-break mt-2" th:text="${msg.body}">Message content</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </th:block>
 
   <!-- State B: Channel selected (Actual chat room) -->
@@ -237,7 +272,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Auto-scroll to bottom of messages on load -->
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     var scrollContainer = document.getElementById("messageScrollContainer");
