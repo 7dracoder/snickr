@@ -22,4 +22,5 @@ public class Message {
 
     private String senderName;
     private String channelName;
+    private String channelType;
 }

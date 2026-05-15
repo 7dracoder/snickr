@@ -170,7 +170,9 @@
               </div>
               <a th:href="@{/workspaces/{wsId}/channels/{chId}(wsId=${workspace.workspaceId}, chId=${msg.channelId})}"
                  class="badge bg-secondary text-decoration-none">
-                # <span th:text="${msg.channelName}">channel</span>
+                <span th:if="${msg.channelType == 'public' or msg.channelType == 'private'}">#</span>
+                <span th:if="${msg.channelType == 'direct'}">@</span>
+                <span th:text="${msg.channelName}">channel</span>
               </a>
             </div>
             <div class="text-break mt-2" th:text="${msg.body}">Message content</div>

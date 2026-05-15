@@ -9,9 +9,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Responsible for handling database interactions for the 'Messages' table
- */
 @Repository
 public class MessageRepository {
 
@@ -34,12 +31,13 @@ public class MessageRepository {
     };
 
     /**
-     * RowMapper specifically for search results, as it includes channel_name
+     * RowMapper specifically for search results, as it includes channel_name and channel_type
      */
     private final RowMapper<Message> searchResultRowMapper = (rs, rowNum) -> {
         Message message = messageRowMapper.mapRow(rs, rowNum);
         if (message != null) {
             message.setChannelName(rs.getString("channel_name"));
+            message.setChannelType(rs.getString("channel_type"));
         }
         return message;
     };
@@ -49,9 +47,6 @@ public class MessageRepository {
         jdbcTemplate.update(sql, channelId, senderId, body);
     }
 
-    /**
-     * Retrieve all messages within a specified channel (chronological order)
-     */
     public List<Message> findMessagesByChannelId(UUID channelId) {
         String sql = "SELECT m.*, u.username as sender_name FROM messages m " +
                 "LEFT JOIN users u ON m.sender_id = u.user_id " +
@@ -64,18 +59,24 @@ public class MessageRepository {
      * Performs a global search across all authorized channels in a workspace
      */
     public List<Message> searchMessages(UUID workspaceId, UUID userId, String keyword) {
-        String sql = "SELECT m.*, u.username as sender_name, c.name as channel_name " +
+        String sql = "SELECT m.*, u.username as sender_name, c.type as channel_type, " +
+                "CASE " +
+                "  WHEN c.type = 'direct'::channel_type THEN " +
+                "    COALESCE((SELECT u2.username FROM channel_memberships cm2 JOIN users u2 ON cm2.user_id = u2.user_id WHERE cm2.channel_id = c.channel_id AND cm2.user_id != ? LIMIT 1), 'Direct Message') " +
+                "  ELSE c.name " +
+                "END as channel_name " +
                 "FROM messages m " +
                 "JOIN users u ON m.sender_id = u.user_id " +
                 "JOIN channels c ON m.channel_id = c.channel_id " +
                 "WHERE c.workspace_id = ? " +
-                "AND (c.type = 'public'::channel_type OR (c.type = 'private'::channel_type AND EXISTS (" +
+                "AND (c.type = 'public'::channel_type OR (c.type IN ('private'::channel_type, 'direct'::channel_type) AND EXISTS (" +
                 "    SELECT 1 FROM channel_memberships cm WHERE cm.channel_id = c.channel_id AND cm.user_id = ?" +
                 "))) " +
                 "AND m.body ILIKE ? " +
                 "ORDER BY m.posted_at DESC";
 
         String searchPattern = "%" + keyword + "%";
-        return jdbcTemplate.query(sql, searchResultRowMapper, workspaceId, userId, searchPattern);
+        // Notice we pass userId twice: first for the CASE WHEN subquery, second for the EXISTS authorization check
+        return jdbcTemplate.query(sql, searchResultRowMapper, userId, workspaceId, userId, searchPattern);
     }
 }
