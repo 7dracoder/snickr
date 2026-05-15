@@ -5,6 +5,7 @@ import com.snickr.repository.ChannelRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -71,5 +72,26 @@ public class ChannelService {
      */
     public String getDirectChannelOtherUserName(UUID channelId, UUID userId) {
         return channelRepository.getOtherUsernameInDirectChannel(channelId, userId);
+    }
+
+    /**
+     * NEW METHODS FOR CHANNEL INVITATIONS
+     */
+    public void inviteUserToChannel(UUID channelId, UUID inviterId, UUID inviteeId) {
+        if (channelRepository.isChannelMember(channelId, inviteeId)) {
+            throw new IllegalArgumentException("user_already_member");
+        }
+        if (channelRepository.hasPendingChannelInvitation(channelId, inviteeId)) {
+            throw new IllegalArgumentException("invitation_pending");
+        }
+        channelRepository.createChannelInvitation(channelId, inviterId, inviteeId);
+    }
+
+    public List<Map<String, Object>> getPendingChannelInvitations(UUID workspaceId, UUID userId) {
+        return channelRepository.findPendingChannelInvitationsForUser(workspaceId, userId);
+    }
+
+    public void acceptChannelInvitation(UUID invitationId, UUID userId) {
+        channelRepository.acceptChannelInvitation(invitationId, userId);
     }
 }

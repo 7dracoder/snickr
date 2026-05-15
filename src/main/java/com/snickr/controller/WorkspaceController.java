@@ -96,11 +96,15 @@ public class WorkspaceController {
             List<User> workspaceMembers = userService.getUsersInWorkspace(workspaceId);
             List<Channel> directChannels = channelService.getDirectChannelsForWorkspace(workspaceId, currentUser.getUserId());
 
+            // Fetch pending channel invitations for the sidebar
+            List<Map<String, Object>> channelInvitations = channelService.getPendingChannelInvitations(workspaceId, currentUser.getUserId());
+
             model.addAttribute("workspace", currentWorkspace);
             model.addAttribute("workspaces", allWorkspaces);
             model.addAttribute("channels", channels);
             model.addAttribute("workspaceMembers", workspaceMembers);
             model.addAttribute("directChannels", directChannels);
+            model.addAttribute("channelInvitations", channelInvitations);
             model.addAttribute("activeChannel", null);
             model.addAttribute("currentUser", currentUser);
 

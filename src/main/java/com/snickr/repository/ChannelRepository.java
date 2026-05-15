@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -128,5 +129,50 @@ public class ChannelRepository {
             }
         }
         return newChannel;
+    }
+
+    /**
+     * New methods for channel invitations
+     */
+    public boolean isChannelMember(UUID channelId, UUID userId) {
+        String sql = "SELECT COUNT(*) FROM channel_memberships WHERE channel_id = ? AND user_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, channelId, userId);
+        return count != null && count > 0;
+    }
+
+    public boolean hasPendingChannelInvitation(UUID channelId, UUID inviteeId) {
+        String sql = "SELECT COUNT(*) FROM channel_invitations WHERE channel_id = ? AND invitee_id = ? AND status = 'pending'::status_type";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, channelId, inviteeId);
+        return count != null && count > 0;
+    }
+
+    public void createChannelInvitation(UUID channelId, UUID inviterId, UUID inviteeId) {
+        String sql = "INSERT INTO channel_invitations (channel_id, inviter_id, invitee_id, status) VALUES (?, ?, ?, 'pending'::status_type)";
+        jdbcTemplate.update(sql, channelId, inviterId, inviteeId);
+    }
+
+    public List<Map<String, Object>> findPendingChannelInvitationsForUser(UUID workspaceId, UUID userId) {
+        String sql = "SELECT ci.invitation_id, c.name AS channel_name, c.channel_id, c.type AS channel_type, u.username AS inviter_name " +
+                "FROM channel_invitations ci " +
+                "JOIN channels c ON ci.channel_id = c.channel_id " +
+                "JOIN users u ON ci.inviter_id = u.user_id " +
+                "WHERE ci.invitee_id = ? AND c.workspace_id = ? AND ci.status = 'pending'::status_type " +
+                "AND c.type = 'private'::channel_type";
+        return jdbcTemplate.queryForList(sql, userId, workspaceId);
+    }
+
+    @Transactional
+    public void acceptChannelInvitation(UUID invitationId, UUID userId) {
+        // Update status and fetch the channel ID
+        String updateSql = "UPDATE channel_invitations SET status = 'accepted'::status_type " +
+                "WHERE invitation_id = ? AND invitee_id = ? AND status = 'pending'::status_type " +
+                "RETURNING channel_id";
+        UUID channelId = jdbcTemplate.queryForObject(updateSql, UUID.class, invitationId, userId);
+
+        // Insert into memberships
+        if (channelId != null) {
+            String insertMembershipSql = "INSERT INTO channel_memberships (channel_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING";
+            jdbcTemplate.update(insertMembershipSql, channelId, userId);
+        }
     }
 }

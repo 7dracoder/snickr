@@ -14,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -54,6 +55,9 @@ public class ChannelController {
             List<User> workspaceMembers = userService.getUsersInWorkspace(workspaceId);
             List<Channel> directChannels = channelService.getDirectChannelsForWorkspace(workspaceId, currentUser.getUserId());
 
+            // NEW: Fetch pending channel invitations for the sidebar
+            List<Map<String, Object>> channelInvitations = channelService.getPendingChannelInvitations(workspaceId, currentUser.getUserId());
+
             Channel activeChannel = channelService.getChannelById(channelId);
 
             // Access control for private channels
@@ -77,6 +81,7 @@ public class ChannelController {
             model.addAttribute("channels", channels);
             model.addAttribute("workspaceMembers", workspaceMembers);
             model.addAttribute("directChannels", directChannels);
+            model.addAttribute("channelInvitations", channelInvitations);
             model.addAttribute("activeChannel", activeChannel);
             model.addAttribute("messages", messages);
             model.addAttribute("currentUser", currentUser);
@@ -148,6 +153,42 @@ public class ChannelController {
             return "redirect:/workspaces/" + workspaceId + "/channels/" + dmChannel.getChannelId();
         } catch (Exception e) {
             return "redirect:/workspaces/" + workspaceId + "?error=dm_failed";
+        }
+    }
+
+    /**
+     * NEW ROUTES FOR CHANNEL INVITATIONS
+     */
+
+    @PostMapping("/workspaces/{workspaceId}/channels/{channelId}/invite")
+    public String inviteToChannel(@PathVariable("workspaceId") UUID workspaceId,
+                                  @PathVariable("channelId") UUID channelId,
+                                  @RequestParam("inviteeId") UUID inviteeId,
+                                  Authentication authentication) {
+        String username = authentication.getName();
+        User currentUser = userService.getUserByUsername(username).orElseThrow();
+
+        try {
+            workspaceService.getWorkspaceIfMember(workspaceId, currentUser.getUserId());
+            channelService.inviteUserToChannel(channelId, currentUser.getUserId(), inviteeId);
+            return "redirect:/workspaces/" + workspaceId + "/channels/" + channelId + "?channelInvited";
+        } catch (IllegalArgumentException e) {
+            return "redirect:/workspaces/" + workspaceId + "/channels/" + channelId + "?channelInviteError=" + e.getMessage();
+        }
+    }
+
+    @PostMapping("/channels/invitations/accept")
+    public String acceptChannelInvite(@RequestParam("invitationId") UUID invitationId,
+                                      @RequestParam("workspaceId") UUID workspaceId,
+                                      Authentication authentication) {
+        String username = authentication.getName();
+        User currentUser = userService.getUserByUsername(username).orElseThrow();
+
+        try {
+            channelService.acceptChannelInvitation(invitationId, currentUser.getUserId());
+            return "redirect:/workspaces/" + workspaceId + "?channelJoined";
+        } catch (Exception e) {
+            return "redirect:/workspaces/" + workspaceId;
         }
     }
 }

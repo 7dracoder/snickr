@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -54,6 +55,9 @@ public class SearchController {
             List<User> workspaceMembers = userService.getUsersInWorkspace(workspaceId);
             List<Channel> directChannels = channelService.getDirectChannelsForWorkspace(workspaceId, currentUser.getUserId());
 
+            // Fetch pending channel invitations for the sidebar
+            List<Map<String, Object>> channelInvitations = channelService.getPendingChannelInvitations(workspaceId, currentUser.getUserId());
+
             // Perform global search
             List<Message> searchResults = messageService.searchMessagesInWorkspace(workspaceId, currentUser.getUserId(), keyword);
 
@@ -62,6 +66,7 @@ public class SearchController {
             model.addAttribute("channels", channels);
             model.addAttribute("workspaceMembers", workspaceMembers);
             model.addAttribute("directChannels", directChannels);
+            model.addAttribute("channelInvitations", channelInvitations);
             model.addAttribute("activeChannel", null);
 
             // Add search specific attributes
