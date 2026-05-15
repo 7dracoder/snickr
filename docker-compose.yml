@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: snickr_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: snickr123
+      POSTGRES_DB: snickr_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - snickr_db_data:/var/lib/postgresql
+
+volumes:
+  snickr_db_data:
+
